@@ -39,7 +39,8 @@
   /* inset:-1px — 원래 버튼의 둥근 가장자리가 얇은 선으로 비치지 않게 1px 더 크게 덮는다 */
   .fill{position:absolute;inset:-1px;display:flex;align-items:center;padding:inherit;padding-left:calc(var(--P) + 6px * var(--s) + 1px);border-radius:inherit;
     background:var(--bg1);color:var(--fg1);pointer-events:none;
-    clip-path:inset(calc(50% - var(--D) / 2) var(--P) calc(50% - var(--D) / 2) calc(100% - var(--P) - var(--D)) round 999px);
+    /* 평소엔 점 한가운데에 크기 0으로 숨어 있다가, 마우스를 올리면 거기서부터 퍼진다 (1px 큰 레이어라 +1px 보정) */
+    clip-path:inset(50% calc(var(--P) + var(--D) / 2 + 1px) 50% calc(100% - var(--P) - var(--D) / 2 - 1px) round 999px);
     transition:clip-path var(--dur) var(--ease)}
   .fill .dot{right:auto;left:calc(var(--P) + 1px);background:var(--dot1);transform:scale(0);transition:transform 260ms var(--ease)}
 
