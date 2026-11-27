@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- meta: {"name":"두루마리 버튼","cat":"버튼","desc":"작은 두루마리 버튼을 누르면 양피지가 위아래로 펼쳐지며 글이 한 줄씩 써져요","added":"2026-11-27"} -->
+<!-- meta: {"name":"두루마리 Button","cat":"버튼","desc":"작은 두루마리 버튼을 누르면 양피지가 위아래로 펼쳐지며 글이 한 줄씩 써져요","added":"2026-11-27"} -->
 <html lang="ko">
 <head>
 <meta charset="utf-8">
@@ -68,6 +68,7 @@
   h1{font-family:var(--serif);font-size:clamp(20px,min(5.2vw,6vh),30px);font-weight:800;letter-spacing:-.02em;line-height:1.25;margin-bottom:clamp(10px,2.4vh,20px)}
   .page p{font-size:clamp(13.5px,min(3.4vw,2.6vh),16px);line-height:1.85;margin-bottom:1em;word-break:keep-all;color:#45362a}
   .drop{float:left;font-size:3.2em;line-height:.9;color:var(--red);font-weight:800;margin:.08em .12em 0 0;font-family:var(--serif)}
+  .poem{line-height:2;text-align:center}
   .sign{font-style:italic;text-align:right;color:#6b5641;margin-top:1.4em}
   hr{border:0;height:1px;margin:0 auto 1.1em;width:40%;background:linear-gradient(90deg,transparent,rgba(130,90,50,.45),transparent)}
   .c{opacity:0;filter:blur(2px);transition:opacity .4s ease,filter .4s ease}
@@ -92,13 +93,13 @@
   <div class="scroll" id="scroll">
     <div class="rod top" aria-hidden="true"><i></i><i></i></div>
     <div class="sheet" id="sheet" aria-hidden="true">
-      <article class="page" id="page" tabindex="-1" aria-label="소소한 즐거움의 헌장. 누르면 다시 말려요">
-        <div class="cap w">제1장</div>
-        <h1 class="w">소소한 즐거움의 헌장</h1>
+      <article class="page" id="page" tabindex="-1" aria-label="윤동주, 서시. 누르면 다시 말려요">
+        <div class="cap w">하늘과 바람과 별과 시</div>
+        <h1 class="w">서시</h1>
         <hr>
-        <p class="w"><span class="drop">작</span>은 기계는 크게 떠들지 않는다. 딸깍 한 번, 반 바퀴 도는 톱니 하나로 제 할 일을 다 해낸다. 우리는 그런 기계를 아끼기로 한다. 누르면 꼭 한 번만 대답하는 버튼, 열 때마다 살짝 버티는 서랍, 다 끝났다고 조그맣게 깜박이는 불빛을.</p>
-        <p class="w">그러므로 이 헌장은 밝혀 둔다. 쓸모만큼 기쁨도 설계의 몫이며, 아무도 만지지 않을 모서리까지 둥글게 다듬을 것. 기다림에는 작은 움직임을, 실수에는 너그러운 되돌리기를 마련해 둘 것.</p>
-        <p class="sign w">— 작은 것들의 모임, 첫 번째 저녁에</p>
+        <p class="w poem">죽는 날까지 하늘을 우러러<br>한 점 부끄럼이 없기를,<br>잎새에 이는 바람에도<br>나는 괴로워했다.<br>별을 노래하는 마음으로<br>모든 죽어가는 것을 사랑해야지<br>그리고 나한테 주어진 길을<br>걸어가야겠다.</p>
+        <p class="w poem">오늘 밤에도 별이 바람에 스치운다.</p>
+        <p class="sign w">— 윤동주, 1941</p>
       </article>
     </div>
     <div class="rod bot" aria-hidden="true"><i></i><i></i></div>
@@ -106,7 +107,7 @@
     <button class="roll-btn" id="rollBtn" tabindex="-1">말기 ↑</button>
   </div>
 </div>
-<footer>버튼을 눌러 헌장을 펼쳐 보세요</footer>
+<footer>버튼을 눌러 두루마리를 펼쳐 보세요</footer>
 <p class="sr" aria-live="polite" id="live"></p>
 
 <script>
@@ -156,7 +157,7 @@
         const top=c.offsetTop,ph=page.clientHeight;
         if(top+28>page.scrollTop+ph&&!userScrolled)page.scrollTop=top-ph+48;
       }
-      if(i>=chars.length){clearInterval(writer);live.textContent='헌장을 다 썼어요.'}
+      if(i>=chars.length){clearInterval(writer);live.textContent='시를 다 썼어요.'}
     },34);
   }
   let userScrolled=false;
@@ -171,7 +172,7 @@
     document.body.classList.add('is-open');
     sc.classList.add('lift');
     later(()=>sc.classList.add('open'),500);
-    later(()=>{state='open';rollBtn.tabIndex=0;page.focus({preventScroll:true});live.textContent='헌장이 펼쳐졌어요.';write()},1150);
+    later(()=>{state='open';rollBtn.tabIndex=0;page.focus({preventScroll:true});live.textContent='두루마리가 펼쳐졌어요.';write()},1150);
   }
   function close(){
     if(state==='closed'||state==='closing')return;

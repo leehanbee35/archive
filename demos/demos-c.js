@@ -115,7 +115,7 @@
   };
 
   /* 4. Gooey filter: plain vs. goo */
-  D['구이필터'] = function (el) {
+  D['끈적효과'] = function (el) {
     var id = 'dcgoo' + Math.random().toString(36).slice(2, 9), dots = '';
     [-60, -30, 0, 30, 60].forEach(function (v) { dots += '<i style="--x:' + v + 'px"></i>'; });
     css('dc-go',
@@ -132,7 +132,7 @@
   };
 
   /* 5. Spring physics */
-  D['물리'] = function (el) {
+  D['튕김스프링'] = function (el) {
     css('dc-sp', '.dc-sp svg' + CANVAS + '.dc-sp text{font-size:12px;font-weight:600;fill:#888}');
     var w = wrap(el, 'dc-sp',
       '<svg viewBox="0 0 300 180" preserveAspectRatio="xMidYMid meet"><line x1="150" y1="50" x2="150" y2="130" stroke="#ccc" stroke-dasharray="4 4"/>' +

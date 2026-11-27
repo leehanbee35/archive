@@ -1,4 +1,4 @@
-﻿# 서랍 묶기: components / tags.json / glossary.json / demos 를 읽어서 index.html 안에 채워 넣는다.
+﻿# Archive 묶기: components / tags.json / glossary.json / demos 를 읽어서 index.html 안에 채워 넣는다.
 # (파일 하나로 더블클릭해서 어디서든 열리게)
 $ErrorActionPreference = 'Stop'
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path

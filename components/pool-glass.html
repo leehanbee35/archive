@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- meta: {"name":"수영장 유리 메뉴","cat":"화면","desc":"물결이 일렁이는 수영장 위에 떠 있는 유리 메뉴. 아이콘을 누르면 유리가 물방울처럼 늘어나 카드로 펼쳐져요","added":"2026-11-27"} -->
+<!-- meta: {"name":"수영장 Dock","cat":"화면","desc":"물결이 일렁이는 수영장 위에 떠 있는 유리 메뉴. 아이콘을 누르면 유리가 물방울처럼 늘어나 카드로 펼쳐져요","added":"2026-11-27"} -->
 <html lang="ko">
 <head>
 <meta charset="utf-8">
@@ -91,7 +91,7 @@
   <div class="shade"></div>
 </div>
 
-<header><div class="title">버튼 서랍</div><div class="cap">오후 네 시의 수면 — 실험 no.4</div></header>
+<header><div class="title">수영 기록</div><div class="cap">오늘 오후 4시</div></header>
 
 <div id="float">
   <div id="jelly">
@@ -106,10 +106,10 @@
       </div>
     </div>
     <div id="dock" class="glass" role="toolbar" aria-label="유리 메뉴">
-      <button class="ic" data-i="0" aria-label="메뉴" aria-expanded="false"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></svg></button>
-      <button class="ic" data-i="1" aria-label="잎" aria-expanded="false"><svg viewBox="0 0 24 24"><path d="M5 19c0-8 5-14 15-14 0 10-6 15-14 15"/><path d="M5 19 13 11"/></svg></button>
-      <button class="ic" data-i="2" aria-label="메모" aria-expanded="false"><svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4M9 12h7M9 16h5"/></svg></button>
-      <button class="ic" data-i="3" aria-label="물방울" aria-expanded="false"><svg viewBox="0 0 24 24"><path d="M12 3c3.5 4.5 6 7.7 6 11a6 6 0 0 1-12 0c0-3.3 2.5-6.5 6-11z"/><path d="M9.5 15a2.6 2.6 0 0 0 2.5 2.5"/></svg></button>
+      <button class="ic" data-i="0" aria-label="오늘 수영" aria-expanded="false"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></svg></button>
+      <button class="ic" data-i="1" aria-label="쉬는 시간" aria-expanded="false"><svg viewBox="0 0 24 24"><path d="M5 19c0-8 5-14 15-14 0 10-6 15-14 15"/><path d="M5 19 13 11"/></svg></button>
+      <button class="ic" data-i="2" aria-label="오늘 기록" aria-expanded="false"><svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4M9 12h7M9 16h5"/></svg></button>
+      <button class="ic" data-i="3" aria-label="물 마시기" aria-expanded="false"><svg viewBox="0 0 24 24"><path d="M12 3c3.5 4.5 6 7.7 6 11a6 6 0 0 1-12 0c0-3.3 2.5-6.5 6-11z"/><path d="M9.5 15a2.6 2.6 0 0 0 2.5 2.5"/></svg></button>
       <button class="grip" id="grip" aria-label="유리 옮기기, 화살표 키로 움직여요"><svg viewBox="0 0 8 16"><circle cx="2" cy="3" r="1.2"/><circle cx="6" cy="3" r="1.2"/><circle cx="2" cy="8" r="1.2"/><circle cx="6" cy="8" r="1.2"/><circle cx="2" cy="13" r="1.2"/><circle cx="6" cy="13" r="1.2"/></svg></button>
     </div>
   </div>
@@ -150,10 +150,10 @@
   const gDock=$('gDock'),gCard=$('gCard'),gNeck=$('gNeck');
   const icons=[...dock.querySelectorAll('.ic')];
   const DATA=[
-    {t:'리도, 네 시',s:'수영장 바닥, 레인 4번 — 맑은 유리',l:'왕복',n:4},
-    {t:'떠 있는 잎 한 장',s:'플라타너스 잎이 수면 장력에 기대어 쉬는 중',l:'잎',n:1},
-    {t:'젖은 메모',s:'잉크가 번졌지만 “선크림”만은 또렷해요',l:'줄',n:3},
-    {t:'물방울 하나',s:'유리 끝에 맺혀서 떨어질 듯 말 듯',l:'방울',n:12}
+    {t:'오늘 수영',s:'자유형 · 4번 레인',l:'바퀴',n:4},
+    {t:'쉬는 시간',s:'물 밖에서 잠깐 숨 고르기',l:'분',n:5},
+    {t:'오늘 기록',s:'지난주보다 200m 더 헤엄쳤어요',l:'세트',n:3},
+    {t:'물 마시기',s:'수영 전후로 한 컵씩',l:'컵',n:2}
   ];
   const counts=DATA.map(d=>d.n);
   let open=-1,pos={x:0,y:0},placed=false,geo=null,anims=[];
