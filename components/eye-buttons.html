@@ -1,0 +1,153 @@
+<!doctype html>
+<!-- meta: {"name":"눈 달린 버튼","cat":"버튼","desc":"버튼에 달린 눈동자가 마우스를 쳐다보고, 가끔 눈을 깜빡여요","added":"2026-11-27"} -->
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<title>눈 달린 버튼</title>
+<style>
+  :root{--bg:#f3f4f4;--ink:#141414;--orange:#e5673a;--pop:cubic-bezier(.3,1.6,.5,1);--s:1}
+  *{box-sizing:border-box;margin:0}
+  html,body{min-height:100%}
+  body{display:grid;place-items:center;min-height:100vh;padding:16px;
+    background:radial-gradient(70% 60% at 50% 45%,#fafbfb,var(--bg));
+    font-family:"Pretendard Variable",Pretendard,-apple-system,"Malgun Gothic",sans-serif;color:var(--ink)}
+  .wrap{display:flex;flex-direction:column;align-items:center;gap:calc(22px * var(--s))}
+  .row{display:flex;flex-wrap:wrap;justify-content:center;gap:calc(18px * var(--s))}
+  .hint{font-size:13px;color:#8e9393;letter-spacing:-.01em}
+
+  .eb{position:relative;display:inline-flex;align-items:center;gap:calc(14px * var(--s));
+    height:calc(60px * var(--s));padding:0 calc(14px * var(--s)) 0 calc(26px * var(--s));
+    border:0;border-radius:999px;cursor:pointer;color:#fff;white-space:nowrap;
+    font:inherit;font-size:calc(17px * var(--s));font-weight:600;letter-spacing:-.02em;
+    box-shadow:0 1px 0 rgba(255,255,255,.14) inset,0 -2px 4px rgba(0,0,0,.12) inset,
+               0 14px 28px -10px rgba(20,20,20,.35),0 3px 8px rgba(20,20,20,.08);
+    transition:transform .2s cubic-bezier(.4,0,.2,1),box-shadow .25s;
+    -webkit-tap-highlight-color:transparent}
+  .eb:hover{transform:translateY(-1px);box-shadow:0 1px 0 rgba(255,255,255,.14) inset,0 -2px 4px rgba(0,0,0,.12) inset,0 18px 32px -10px rgba(20,20,20,.4),0 4px 10px rgba(20,20,20,.08)}
+  .eb:active{transform:translateY(1px) scale(.97)}
+  .eb:focus-visible{outline:2px solid var(--ink);outline-offset:4px}
+  .dark{background:linear-gradient(180deg,#262626,#101010)}
+  .orange{background:linear-gradient(180deg,#ec7447,var(--orange) 60%,#d95c31)}
+
+  /* 바뀌는 글자: 두 글자를 겹쳐 놓고 너비는 긴 쪽에 맞춘다 */
+  .lbls{display:grid}
+  .lbls > span{grid-area:1/1;text-align:left;transition:opacity .2s,transform .3s var(--pop)}
+  .lbls .b{opacity:0;transform:translateY(8px)}
+  .copied .lbls .a{opacity:0;transform:translateY(-8px)}
+  .copied .lbls .b{opacity:1;transform:none}
+
+  /* 눈 */
+  .eyes{display:flex;gap:calc(5px * var(--s))}
+  .eye{--e:calc(24px * var(--s));position:relative;width:var(--e);height:var(--e);transition:transform .3s var(--pop)}
+  .ball{position:absolute;inset:0;border-radius:50%;background:#fff;overflow:hidden;
+    box-shadow:inset 0 -2px 0 rgba(0,0,0,.08);transition:transform .09s ease-in}
+  .pupil{position:absolute;left:50%;top:50%;width:42%;height:42%;margin:-21%;border-radius:50%;background:#111;will-change:transform}
+  .pupil::after{content:"";position:absolute;left:22%;top:18%;width:30%;height:30%;border-radius:50%;background:rgba(255,255,255,.85)}
+  .happy{position:absolute;left:8%;top:22%;width:84%;height:56%;overflow:visible;opacity:0;transform:translateY(3px) scale(.5);
+    transition:opacity .15s,transform .3s var(--pop)}
+  .happy path{fill:none;stroke:#fff;stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round}
+
+  .eb:hover .eye{transform:scale(1.13)}
+  .blink .ball{transform:scaleY(.1)}
+  .one:hover .ball{transform:scaleY(.1);transition-duration:.14s}
+  .happyOn .ball{transform:scale(0);transition:transform .15s ease-in}
+  .happyOn .happy{opacity:1;transform:none}
+  .one.pop .eye{transform:scale(1.35)}
+  .one.pop .ball{transform:none;transition-duration:.12s}
+
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  @media (max-width:440px),(max-height:300px){:root{--s:.84}}
+  @media (max-height:260px){.hint{display:none}}
+  @media (prefers-reduced-motion:reduce){*{transition-duration:1ms!important}.eb:hover,.eb:active{transform:none}}
+</style>
+</head>
+<body>
+  <main class="wrap">
+    <div class="row">
+      <button class="eb dark" id="copy">
+        <span class="lbls"><span class="a">이메일 복사</span><span class="b" aria-hidden="true">복사했어요</span></span>
+        <span class="eyes" aria-hidden="true">
+          <span class="eye"><span class="ball"><i class="pupil"></i></span><svg class="happy" viewBox="0 0 20 12"><path d="M3 10 Q10 -1 17 10"/></svg></span>
+          <span class="eye"><span class="ball"><i class="pupil"></i></span><svg class="happy" viewBox="0 0 20 12"><path d="M3 10 Q10 -1 17 10"/></svg></span>
+        </span>
+      </button>
+      <button class="eb orange one" id="one">
+        <span class="lbls"><span class="a">한쪽 눈 뜨기</span></span>
+        <span class="eyes" aria-hidden="true">
+          <span class="eye"><span class="ball"><i class="pupil"></i></span></span>
+        </span>
+      </button>
+    </div>
+    <p class="hint">눈동자가 마우스를 따라가요</p>
+  </main>
+  <span class="sr" id="status" aria-live="polite"></span>
+<script>
+  const RM = matchMedia('(prefers-reduced-motion: reduce)');
+  const status = document.getElementById('status');
+  const eyes = [...document.querySelectorAll('.eye')].map(el => ({ el, p: el.querySelector('.pupil'), x: 0, y: 0 }));
+
+  // 눈동자: 페이지 어디에 있든 마우스를 쳐다본다 (눈 안에서만 움직임)
+  let mx = 0, my = 0, has = false;
+  addEventListener('pointermove', e => { mx = e.clientX; my = e.clientY; has = true; });
+  document.documentElement.addEventListener('pointerleave', () => { has = false; });
+
+  function frame() {
+    for (const e of eyes) {
+      const r = e.el.getBoundingClientRect();
+      const ex = r.left + r.width / 2, ey = r.top + r.height / 2;
+      const size = e.el.offsetWidth, max = size * .5 - size * .21 - 1.5;
+      let tx = 0, ty = 0;
+      if (has) {
+        const dx = mx - ex, dy = my - ey, d = Math.hypot(dx, dy) || 1;
+        const off = max * Math.min(1, d / 110);
+        tx = dx / d * off; ty = dy / d * off;
+      }
+      const f = RM.matches ? 1 : (has ? .28 : .06);
+      e.x += (tx - e.x) * f; e.y += (ty - e.y) * f;
+      e.p.style.transform = `translate(${e.x.toFixed(2)}px,${e.y.toFixed(2)}px)`;
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  // 깜빡임: 2~5초마다, 가끔 두 번 연속
+  function blink(b) { b.classList.add('blink'); setTimeout(() => b.classList.remove('blink'), 120); }
+  function schedule(b) {
+    setTimeout(() => {
+      if (!RM.matches && !document.hidden) {
+        blink(b);
+        if (Math.random() < .28) setTimeout(() => blink(b), 240);
+      }
+      schedule(b);
+    }, 2000 + Math.random() * 3000);
+  }
+  document.querySelectorAll('.eb').forEach(schedule);
+
+  // 이메일 복사: 웃는 눈(^ ^) + 글자 바뀜. 클립보드가 막혀 있어도 반응은 보여준다
+  const copy = document.getElementById('copy');
+  let tc;
+  copy.addEventListener('click', () => {
+    copy.classList.add('copied', 'happyOn');
+    status.textContent = '이메일 주소를 복사했어요';
+    clearTimeout(tc);
+    tc = setTimeout(() => { copy.classList.remove('copied', 'happyOn'); status.textContent = ''; }, 1700);
+    try {
+      const p = navigator.clipboard && navigator.clipboard.writeText('hello@example.com');
+      if (p && p.catch) p.catch(() => {});
+    } catch (_) {}
+  });
+
+  // 한쪽 눈 버튼: 올리면 윙크, 누르면 눈을 번쩍 뜬다
+  const one = document.getElementById('one');
+  let to;
+  one.addEventListener('click', () => {
+    one.classList.add('pop');
+    status.textContent = '눈을 떴어요';
+    clearTimeout(to);
+    to = setTimeout(() => { one.classList.remove('pop'); status.textContent = ''; }, 800);
+  });
+</script>
+</body>
+</html>

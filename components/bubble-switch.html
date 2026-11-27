@@ -1,0 +1,188 @@
+<!doctype html>
+<!-- meta: {"name":"비눗방울 스위치","cat":"스위치","desc":"비눗방울 손잡이가 늘어나며 건너가고, 낮의 해가 밤의 달과 별로 바뀌어요","added":"2026-11-27"} -->
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<title>비눗방울 스위치</title>
+<style>
+  :root{--ease:cubic-bezier(.68,-.05,.22,1)}
+  *{box-sizing:border-box;margin:0}
+  html,body{height:100%}
+  body{display:grid;place-items:center;overflow:hidden;background:#f2efe9;color:#5b5850;
+    font-family:"Pretendard Variable",Pretendard,-apple-system,"Malgun Gothic",sans-serif;
+    transition:background-color .9s ease,color .9s ease}
+  body.night{background:#07070c;color:#aaa3d6}
+  .wrap{display:flex;flex-direction:column;align-items:center;gap:22px}
+  .stage{position:relative}
+
+  .sw{position:relative;display:block;width:140px;height:62px;padding:0;border:0;border-radius:31px;background:none;
+    cursor:pointer;-webkit-tap-highlight-color:transparent}
+  .sw:focus-visible{outline:2px solid #1f9c8a;outline-offset:6px}
+  body.night .sw:focus-visible{outline-color:#a98bff}
+
+  /* 트랙 */
+  .track{position:absolute;inset:0;border-radius:inherit;overflow:hidden;
+    background:linear-gradient(180deg,#66e2cf 0%,#2fc3ad 50%,#23a592 100%);
+    box-shadow:inset 0 2px 4px rgba(255,255,255,.55),inset 0 -3px 7px rgba(0,60,50,.28),
+      0 9px 20px rgba(30,130,112,.28),0 2px 4px rgba(30,90,80,.18);
+    transition:box-shadow .9s ease}
+  body.night .track{box-shadow:inset 0 2px 4px rgba(200,170,255,.25),inset 0 -3px 7px rgba(0,0,0,.45),
+      0 9px 26px rgba(110,60,210,.35),0 2px 4px rgba(0,0,0,.4)}
+  .nightbg{position:absolute;inset:0;opacity:0;transition:opacity .9s ease;
+    background:radial-gradient(120% 140% at 28% 18%,#43218a,#240f4e 62%,#170936)}
+  body.night .nightbg{opacity:1}
+  .track::after{content:"";position:absolute;left:12px;right:12px;top:4px;height:42%;border-radius:20px;pointer-events:none;
+    background:linear-gradient(180deg,rgba(255,255,255,.55),rgba(255,255,255,0))}
+  body.night .track::after{opacity:.35}
+  .star{position:absolute;width:2px;height:2px;border-radius:50%;background:#fff;opacity:0;
+    box-shadow:0 0 4px 1px rgba(255,255,255,.8);transition:opacity .6s}
+  .star.big{width:3px;height:3px}
+  body.night .star{animation:tw 2.6s ease-in-out infinite;animation-delay:var(--d)}
+  @keyframes tw{0%,100%{opacity:.15;transform:scale(.6)}50%{opacity:1;transform:scale(1.25)}}
+
+  /* 비눗방울 손잡이 */
+  .knob{position:absolute;left:6px;top:6px;width:50px;height:50px;z-index:2;transition:transform .85s var(--ease)}
+  .sw[aria-checked="true"] .knob{transform:translateX(78px)}
+  .bub{position:absolute;inset:0;border-radius:50%;
+    background:radial-gradient(circle at 50% 50%,rgba(255,255,255,.05) 0 50%,rgba(255,255,255,.16) 72%,rgba(255,255,255,.55) 100%);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.5),inset -4px -6px 10px rgba(255,255,255,.16),0 7px 14px rgba(0,40,35,.2);
+    -webkit-backdrop-filter:blur(1.5px) saturate(1.4);backdrop-filter:blur(1.5px) saturate(1.4)}
+  body.night .bub{box-shadow:inset 0 0 0 1px rgba(255,255,255,.4),inset -4px -6px 10px rgba(255,255,255,.1),0 7px 16px rgba(0,0,0,.5)}
+  .film,.film2{position:absolute;inset:0;border-radius:50%;pointer-events:none;mix-blend-mode:screen}
+  .film{background:conic-gradient(from 0deg,#ff8fd0,#ffd57a,#a8ff9e,#7be0ff,#a68bff,#ff8fd0);
+    -webkit-mask:radial-gradient(closest-side,transparent 68%,rgba(0,0,0,.5) 85%,#000 96%,transparent 100%);
+            mask:radial-gradient(closest-side,transparent 68%,rgba(0,0,0,.5) 85%,#000 96%,transparent 100%);
+    opacity:.85;animation:spin 7s linear infinite,hue 5s ease-in-out infinite alternate}
+  .film2{background:conic-gradient(from 140deg at 42% 60%,rgba(255,150,220,0),rgba(255,150,220,.55),rgba(120,220,255,.5),rgba(255,240,140,.45),rgba(255,150,220,0));
+    -webkit-mask:radial-gradient(closest-side,transparent 30%,#000 85%,transparent 100%);
+            mask:radial-gradient(closest-side,transparent 30%,#000 85%,transparent 100%);
+    opacity:.4;animation:spin 11s linear infinite reverse}
+  @keyframes spin{to{transform:rotate(1turn)}}
+  @keyframes hue{to{filter:hue-rotate(80deg)}}
+  .hl{position:absolute;left:17%;top:11%;width:40%;height:23%;border-radius:50%;transform:rotate(-32deg);
+    background:radial-gradient(closest-side,rgba(255,255,255,.95),rgba(255,255,255,0))}
+  .hl2{position:absolute;right:19%;bottom:15%;width:12%;height:12%;border-radius:50%;
+    background:radial-gradient(closest-side,#fff,rgba(255,255,255,0))}
+
+  .ico{position:absolute;left:50%;top:50%;width:28px;height:28px;margin:-14px 0 0 -14px;
+    transition:opacity .5s ease,transform .8s var(--ease)}
+  .moon{opacity:0;transform:rotate(-70deg) scale(.4)}
+  .sw[aria-checked="true"] .sun{opacity:0;transform:rotate(100deg) scale(.4)}
+  .sw[aria-checked="true"] .moon{opacity:1;transform:none}
+  .rays{transform-origin:14px 14px;animation:spin 14s linear infinite}
+  .moon .tw1{animation:tw 2s ease-in-out infinite}
+  .moon .tw2{animation:tw 2.8s .6s ease-in-out infinite}
+
+  /* 떨어져 나가는 작은 방울 */
+  .mini{position:absolute;border-radius:50%;pointer-events:none;z-index:3;
+    background:radial-gradient(circle at 34% 30%,rgba(255,255,255,.95) 0 12%,rgba(255,255,255,.06) 32% 62%,rgba(255,255,255,.45) 100%);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.65),inset 1px -1px 2px rgba(255,130,220,.7),inset -1px 1px 2px rgba(110,220,255,.7)}
+
+  .cap{font-size:14px;font-weight:500;letter-spacing:-.01em;min-height:1.4em;transition:opacity .25s}
+  .cap.fade{opacity:0}
+
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation:none!important;transition:none!important}
+    body.night .star{opacity:.75}
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="stage" id="stage">
+      <button class="sw" id="sw" role="switch" aria-checked="false" aria-label="밤 모드">
+        <span class="track" aria-hidden="true">
+          <span class="nightbg"></span>
+          <span class="star" style="left:18px;top:14px;--d:0s"></span>
+          <span class="star big" style="left:34px;top:38px;--d:.7s"></span>
+          <span class="star" style="left:52px;top:18px;--d:1.3s"></span>
+          <span class="star" style="left:66px;top:44px;--d:.4s"></span>
+          <span class="star big" style="left:80px;top:12px;--d:1.8s"></span>
+          <span class="star" style="left:24px;top:48px;--d:2.1s"></span>
+          <span class="star" style="left:120px;top:10px;--d:1s"></span>
+        </span>
+        <span class="knob" aria-hidden="true">
+          <span class="bub" id="bub">
+            <span class="film2"></span>
+            <svg class="ico sun" viewBox="0 0 28 28">
+              <defs><radialGradient id="sg" cx="40%" cy="35%" r="70%"><stop offset="0" stop-color="#fff6c2"/><stop offset=".55" stop-color="#ffcf3f"/><stop offset="1" stop-color="#f0961a"/></radialGradient></defs>
+              <g class="rays" stroke="#ffc23a" stroke-width="2" stroke-linecap="round">
+                <path d="M14 1.8v3M14 23.2v3M1.8 14h3M23.2 14h3M5.4 5.4l2.1 2.1M22.6 5.4l-2.1 2.1M5.4 22.6l2.1-2.1M22.6 22.6l-2.1-2.1"/>
+              </g>
+              <circle cx="14" cy="14" r="6.2" fill="url(#sg)"/>
+            </svg>
+            <svg class="ico moon" viewBox="0 0 28 28">
+              <defs>
+                <radialGradient id="mg" cx="35%" cy="40%" r="75%"><stop offset="0" stop-color="#fffbe6"/><stop offset="1" stop-color="#f3d37a"/></radialGradient>
+                <mask id="mm"><rect width="28" height="28" fill="#fff"/><circle cx="18.6" cy="10.2" r="7" fill="#000"/></mask>
+              </defs>
+              <circle cx="12.6" cy="15" r="8.2" fill="url(#mg)" mask="url(#mm)"/>
+              <path class="tw1" style="transform-origin:21px 19px" d="M21 16.6Q21 19 23.4 19Q21 19 21 21.4Q21 19 18.6 19Q21 19 21 16.6Z" fill="#fff8d8"/>
+              <path class="tw2" style="transform-origin:21.5px 6px" d="M21.5 4.4Q21.5 6 23.1 6Q21.5 6 21.5 7.6Q21.5 6 19.9 6Q21.5 6 21.5 4.4Z" fill="#fff"/>
+            </svg>
+            <span class="film"></span>
+            <span class="hl"></span><span class="hl2"></span>
+          </span>
+        </span>
+      </button>
+    </div>
+    <p class="cap" id="cap">햇살 가득한 낮이에요</p>
+  </div>
+<script>
+  const sw = document.getElementById('sw'), bub = document.getElementById('bub'),
+        stage = document.getElementById('stage'), cap = document.getElementById('cap');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)');
+
+  // 늘어났다 출렁이며 돌아오는 비눗방울 모양
+  const STRETCH = [
+    { transform: 'scale(1,1)' },
+    { transform: 'scale(.92,1.06)', offset: .08 },
+    { transform: 'scale(1.36,.78)', offset: .36 },
+    { transform: 'scale(.86,1.13)', offset: .6 },
+    { transform: 'scale(1.08,.94)', offset: .76 },
+    { transform: 'scale(.97,1.03)', offset: .89 },
+    { transform: 'scale(1,1)' }
+  ];
+
+  function spawn(on) {
+    const kr = bub.getBoundingClientRect(), sr = stage.getBoundingClientRect();
+    const s = 5 + Math.random() * 7;
+    const x = kr.left - sr.left + kr.width * (.25 + Math.random() * .5);
+    const y = kr.top - sr.top + kr.height * (.2 + Math.random() * .3);
+    const el = document.createElement('span');
+    el.className = 'mini';
+    el.style.cssText = `width:${s}px;height:${s}px;left:${x - s / 2}px;top:${y - s / 2}px`;
+    stage.appendChild(el);
+    const dx = (Math.random() - .5) * 34 + (on ? -10 : 10), dy = -(34 + Math.random() * 44);
+    const sway = (Math.random() - .5) * 16;
+    const a = el.animate([
+      { transform: 'translate(0,0) scale(.2)', opacity: 0 },
+      { transform: `translate(${dx * .25}px,${dy * .2}px) scale(1)`, opacity: 1, offset: .14 },
+      { transform: `translate(${dx * .6 + sway}px,${dy * .6}px) scale(1)`, opacity: 1, offset: .55 },
+      { transform: `translate(${dx}px,${dy}px) scale(1)`, opacity: 1, offset: .86 },
+      { transform: `translate(${dx}px,${dy}px) scale(1.9)`, opacity: 0 }
+    ], { duration: 1000 + Math.random() * 700, easing: 'cubic-bezier(.3,.6,.4,1)' });
+    a.onfinish = () => el.remove();
+  }
+
+  let capTimer;
+  sw.addEventListener('click', () => {
+    const on = sw.getAttribute('aria-checked') !== 'true';
+    sw.setAttribute('aria-checked', String(on));
+    document.body.classList.toggle('night', on);
+    clearTimeout(capTimer);
+    cap.classList.add('fade');
+    capTimer = setTimeout(() => {
+      cap.textContent = on ? '별이 반짝이는 밤이에요' : '햇살 가득한 낮이에요';
+      cap.classList.remove('fade');
+    }, 250);
+    if (reduce.matches) return;
+    bub.getAnimations().forEach(a => a.cancel());
+    bub.animate(STRETCH, { duration: 980, easing: 'ease-out' });
+    for (let i = 0; i < 5; i++) setTimeout(spawn, 80 + i * 120, on);
+  });
+</script>
+</body>
+</html>

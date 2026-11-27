@@ -1,0 +1,189 @@
+<!doctype html>
+<!-- meta: {"name":"자성 유체 스위치","cat":"스위치","desc":"검은 자성 액체 방울이 가시를 세우며 건너가면 방이 보랏빛 밤으로 바뀌어요","added":"2026-11-27"} -->
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<title>자성 유체 스위치</title>
+<style>
+  :root{--violet:#b07cff}
+  *{box-sizing:border-box;margin:0}
+  html,body{height:100%}
+  body{display:grid;place-items:center;overflow:hidden;background:#e9e9ea;color:#85858c;
+    font-family:"Pretendard Variable",Pretendard,-apple-system,"Malgun Gothic",sans-serif;
+    transition:background-color 1s ease,color 1s ease}
+  body.night{background:#1a1426;color:#d9c4ff}
+  .wrap{display:flex;flex-direction:column;align-items:center;gap:14px;width:min(320px,calc(100vw - 40px))}
+
+  .slot{position:relative;width:100%;aspect-ratio:320/70;border-radius:999px;overflow:hidden;cursor:grab;touch-action:none;
+    background:#e2e2e4;outline:none;-webkit-tap-highlight-color:transparent;
+    box-shadow:inset 7px 7px 14px #c3c3c7,inset -7px -7px 14px #ffffff,0 0 0 rgba(176,124,255,0);
+    transition:background-color 1s ease,box-shadow 1s ease}
+  .slot:active{cursor:grabbing}
+  .slot:focus-visible{outline:2px solid #6a6a72;outline-offset:5px}
+  body.night .slot{background:#140f1f;
+    box-shadow:inset 7px 7px 14px #0b0812,inset -5px -5px 12px #2a2140,0 0 34px rgba(176,124,255,.35)}
+  body.night .slot:focus-visible{outline-color:var(--violet)}
+  .glow{position:absolute;left:0;top:0;bottom:0;width:0;border-radius:999px;opacity:0;pointer-events:none;
+    background:linear-gradient(90deg,rgba(176,124,255,.25),rgba(176,124,255,.85) 70%,#d7bcff);
+    box-shadow:0 0 22px 6px rgba(176,124,255,.55);filter:blur(5px)}
+  svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+
+  .labels{display:flex;justify-content:space-between;align-items:center;width:100%;padding:0 20px;font-size:13px;
+    user-select:none}
+  .labels .lt{font-size:11.5px;font-weight:600;letter-spacing:.38em;padding-left:.38em;transition:text-shadow 1s}
+  .labels .g{font-size:15px;line-height:1;transition:text-shadow 1s,color 1s}
+  body.night .labels .lt,body.night .labels .g{text-shadow:0 0 8px var(--violet),0 0 18px rgba(176,124,255,.6)}
+  body.night .labels .sun{color:#6d5c8a;text-shadow:none}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="slot" id="slot" role="switch" aria-checked="false" tabindex="0" aria-label="밤 모드">
+      <div class="glow" id="glow"></div>
+      <svg id="svg" viewBox="0 0 320 70" aria-hidden="true">
+        <defs>
+          <filter id="goo" x="-10%" y="-60%" width="120%" height="220%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="3.4" result="b"/>
+            <feColorMatrix in="b" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 22 -9" result="g"/>
+            <feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+          <radialGradient id="sheen" cx="36%" cy="30%" r="70%">
+            <stop offset="0" stop-color="#fff" stop-opacity=".28"/>
+            <stop offset=".45" stop-color="#fff" stop-opacity=".05"/>
+            <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+          </radialGradient>
+          <linearGradient id="spec" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#fff" stop-opacity=".9"/>
+            <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+          </linearGradient>
+          <linearGradient id="rim" x1="0" y1="0" x2="1" y2="1">
+            <stop offset=".35" stop-color="#b07cff" stop-opacity="0"/>
+            <stop offset="1" stop-color="#d2b2ff" stop-opacity="1"/>
+          </linearGradient>
+        </defs>
+        <g id="fluid" filter="url(#goo)" fill="#070709"></g>
+        <g id="gloss">
+          <circle r="19" fill="url(#sheen)"/>
+          <circle id="rimc" r="20" fill="none" stroke="url(#rim)" stroke-width="2.2" opacity="0"/>
+          <ellipse cx="-7" cy="-10" rx="7.5" ry="4" fill="url(#spec)" transform="rotate(-24 -7 -10)"/>
+          <circle cx="8" cy="9" r="1.6" fill="#fff" opacity=".35"/>
+        </g>
+      </svg>
+    </div>
+    <div class="labels" aria-hidden="true"><span class="g sun">☀</span><span class="lt">밤 모드</span><span class="g">☾</span></div>
+  </div>
+<script>
+  const NS = 'http://www.w3.org/2000/svg';
+  const slot = document.getElementById('slot'), svg = document.getElementById('svg'),
+        fluid = document.getElementById('fluid'), gloss = document.getElementById('gloss'),
+        rimc = document.getElementById('rimc'), glow = document.getElementById('glow');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)');
+  const XL = 36, XR = 284, CY = 35, R = 20, NSPK = 15;
+
+  const mk = (tag, attrs) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); fluid.appendChild(e); return e; };
+  const main = mk('circle', { cx: XL, cy: CY, r: R });
+  const spikes = Array.from({ length: NSPK }, (_, i) => ({ el: mk('polygon', { points: '' }), a: i / NSPK * Math.PI * 2 + .2, ph: Math.random() * 6 }));
+  const drops = [5.5, 4.5, 6.5, 3.8].map((r, i) => ({
+    el: mk('circle', { r }), r, x: XL, y: CY, vx: 0, vy: 0, k: .011 + i * .005, oy: [-5, 6, 1, -8][i], air: 0
+  }));
+
+  let on = false, x = XL, v = 0, T = XL, s = 0, dragging = false, last = performance.now(), t = 0, night = false;
+
+  function setState(next, viaDrag) {
+    const was = on;
+    on = next;
+    slot.setAttribute('aria-checked', String(on));
+    if (on && !was && !viaDrag && !reduce.matches) setTimeout(() => { if (on) T = XR; }, 170); // 가시가 먼저 선다
+    else T = on ? XR : XL;
+    if (!on && was && !reduce.matches) {
+      // 끌려가던 방울들이 공중으로 흩어졌다가 다시 떨어진다
+      drops.forEach(d => { d.vx = (Math.random() - .5) * 5; d.vy = -(2.5 + Math.random() * 3.5); d.air = 32 + Math.random() * 14; });
+    }
+  }
+
+  function frame(now) {
+    const f = Math.min(3, (now - last) / 16.67); last = now; t += .016 * f;
+    if (reduce.matches) {
+      x = T; v = 0; s = on ? 1 : 0;
+    } else {
+      if (!dragging) { v += (T - x) * .022 * f; v *= Math.pow(.86, f); x += v * f; }
+      const sT = on || dragging ? 1 : 0;
+      s += (sT - s) * (sT ? .1 : .16) * f;
+    }
+    const p = Math.max(0, Math.min(1, (x - XL) / (XR - XL)));
+
+    main.setAttribute('cx', x.toFixed(2));
+    main.setAttribute('r', (R + (1 - s) * 1.2).toFixed(2));
+    const lean = Math.max(-.5, Math.min(.5, -v * .03));
+    spikes.forEach((sp, i) => {
+      const wig = reduce.matches ? 1 : .78 + .22 * Math.sin(t * 4.2 + sp.ph) + .1 * Math.sin(t * 9 + i);
+      const L = s * 12 * wig * (.75 + .25 * Math.abs(Math.sin(sp.a * 2.5)));
+      const w = .2, rb = R * .86, ta = sp.a + lean * Math.cos(sp.a);
+      const bx1 = x + Math.cos(sp.a - w) * rb, by1 = CY + Math.sin(sp.a - w) * rb;
+      const bx2 = x + Math.cos(sp.a + w) * rb, by2 = CY + Math.sin(sp.a + w) * rb;
+      const tx = x + Math.cos(ta) * (R + L - 2), ty = CY + Math.sin(ta) * (R + L - 2);
+      sp.el.setAttribute('points', `${bx1.toFixed(1)},${by1.toFixed(1)} ${tx.toFixed(1)},${ty.toFixed(1)} ${bx2.toFixed(1)},${by2.toFixed(1)}`);
+    });
+
+    drops.forEach((d, i) => {
+      if (reduce.matches) { d.x = x; d.y = CY; }
+      else if (d.air > 0) {
+        d.air -= f; d.vy += .32 * f; d.vx *= Math.pow(.98, f);
+        d.x += d.vx * f; d.y += d.vy * f;
+        if (d.y < d.r + 3) { d.y = d.r + 3; d.vy = Math.abs(d.vy) * .4; }
+      } else {
+        d.vx += (x - d.x) * d.k * f; d.vy += (CY + d.oy * s - d.y) * d.k * 1.4 * f;
+        d.vx *= Math.pow(.84, f); d.vy *= Math.pow(.84, f);
+        d.x += d.vx * f; d.y += d.vy * f;
+      }
+      d.el.setAttribute('cx', d.x.toFixed(2)); d.el.setAttribute('cy', d.y.toFixed(2));
+    });
+
+    gloss.setAttribute('transform', `translate(${x.toFixed(2)} ${CY})`);
+    const lit = on ? p : p * .6;
+    rimc.setAttribute('opacity', (lit * .95).toFixed(3));
+    svg.style.filter = lit > .01 ? `drop-shadow(0 0 ${3 + lit * 5}px rgba(176,124,255,${(lit * .85).toFixed(3)}))` : 'none';
+    glow.style.width = ((x + R + 6) / 320 * 100) + '%';
+    glow.style.opacity = lit.toFixed(3);
+
+    const n = on && p > .82;
+    if (n !== night) { night = n; document.body.classList.toggle('night', n); }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  // 클릭과 드래그
+  const toSvgX = cx => { const r = slot.getBoundingClientRect(); return (cx - r.left) / r.width * 320; };
+  let downX = null, grabOff = 0;
+  slot.addEventListener('pointerdown', e => {
+    downX = e.clientX; grabOff = x - toSvgX(e.clientX);
+    if (Math.abs(grabOff) > R + 14) grabOff = 0;
+    slot.setPointerCapture(e.pointerId);
+  });
+  slot.addEventListener('pointermove', e => {
+    if (downX === null) return;
+    if (!dragging && Math.abs(e.clientX - downX) > 5) dragging = true;
+    if (dragging) {
+      const nx = Math.max(XL, Math.min(XR, toSvgX(e.clientX) + grabOff));
+      v = nx - x; x = nx;
+    }
+  });
+  const end = () => {
+    if (downX === null) return;
+    if (dragging) { dragging = false; setState(x > (XL + XR) / 2, true); }
+    else setState(!on);
+    downX = null;
+  };
+  slot.addEventListener('pointerup', end);
+  slot.addEventListener('pointercancel', () => { downX = null; if (dragging) { dragging = false; setState(x > (XL + XR) / 2, true); } });
+  slot.addEventListener('keydown', e => {
+    if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); setState(!on); }
+    else if (e.key === 'ArrowRight' && !on) { e.preventDefault(); setState(true); }
+    else if (e.key === 'ArrowLeft' && on) { e.preventDefault(); setState(false); }
+  });
+</script>
+</body>
+</html>

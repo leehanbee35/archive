@@ -1,0 +1,103 @@
+<!doctype html>
+<!-- meta: {"name":"점 버튼 세트","cat":"버튼","desc":"버튼 끝의 작은 점이 마우스를 올리면 부풀어 올라 버튼 전체를 뒤집어 칠해요","added":"2026-11-27"} -->
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<title>점 버튼 세트</title>
+<style>
+  :root{--bg:#e7e2da;--ink:#141414;--orange:#e2643a;--ease:cubic-bezier(.72,0,.18,1);--dur:450ms;--s:1}
+  *{box-sizing:border-box;margin:0}
+  html,body{min-height:100%}
+  body{display:grid;place-items:center;min-height:100vh;padding:16px;
+    background:radial-gradient(80% 70% at 50% 40%,#eeeae3,var(--bg));
+    font-family:"Pretendard Variable",Pretendard,-apple-system,"Malgun Gothic",sans-serif;color:var(--ink)}
+  .wrap{display:flex;flex-direction:column;align-items:center;gap:calc(16px * var(--s))}
+  .row{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:calc(14px * var(--s))}
+  .hint{margin-top:calc(6px * var(--s));font-size:13px;color:#8b847a;letter-spacing:-.01em}
+
+  /* 기본 버튼 */
+  .dbtn{--h:52px;--fs:16px;--d:8px;--px:22px;
+    --H:calc(var(--h) * var(--s));--D:calc(var(--d) * var(--s));--P:calc(var(--px) * var(--s));
+    position:relative;display:inline-flex;align-items:center;height:var(--H);
+    padding:0 calc(var(--P) + var(--D) + 12px * var(--s)) 0 calc(var(--P) + 6px * var(--s));
+    border:0;border-radius:999px;cursor:pointer;white-space:nowrap;
+    background:var(--bg0);color:var(--fg0);
+    font:inherit;font-size:calc(var(--fs) * var(--s));font-weight:600;letter-spacing:-.02em;
+    box-shadow:0 1px 0 rgba(255,255,255,.12) inset,0 8px 18px -6px rgba(20,20,20,.28),0 2px 4px rgba(20,20,20,.08);
+    transition:transform .18s var(--ease),box-shadow .3s var(--ease);
+    -webkit-tap-highlight-color:transparent}
+  .dbtn:active{transform:scale(.97)}
+  .dbtn:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+
+  .lbl{position:relative;display:inline-block;transition:transform var(--dur) var(--ease)}
+  .dot{position:absolute;top:50%;right:var(--P);width:var(--D);height:var(--D);margin-top:calc(var(--D) / -2);
+    border-radius:50%;background:var(--dot0);transition:transform var(--dur) var(--ease)}
+
+  /* 뒤집힌 색이 칠해지는 레이어: 점 위치에서 시작해 알약 모양으로 퍼진다 */
+  .fill{position:absolute;inset:0;display:flex;align-items:center;padding:inherit;border-radius:inherit;
+    background:var(--bg1);color:var(--fg1);pointer-events:none;
+    clip-path:inset(calc(50% - var(--D) / 2) var(--P) calc(50% - var(--D) / 2) calc(100% - var(--P) - var(--D)) round 999px);
+    transition:clip-path var(--dur) var(--ease)}
+  .fill .dot{right:auto;left:var(--P);background:var(--dot1);transform:scale(0);transition:transform 260ms var(--ease)}
+
+  .dbtn:is(:hover,:focus-visible) .fill{clip-path:inset(0 0 0 0 round 999px)}
+  .dbtn:is(:hover,:focus-visible) .lbl{transform:translateX(calc(var(--D) + 6px * var(--s)))}
+  .dbtn:is(:hover,:focus-visible) > .dot{transform:translateX(calc(var(--D) * -1)) scale(.4)}
+  .dbtn:is(:hover,:focus-visible) .fill .dot{transform:scale(1);transition-delay:calc(var(--dur) * .45)}
+
+  /* 색 조합 */
+  .v-black{--bg0:#141414;--fg0:#fff;--dot0:#fff;--bg1:#fbf9f5;--fg1:#141414;--dot1:#141414}
+  .v-light{--bg0:#f8f5f0;--fg0:#141414;--dot0:#141414;--bg1:#141414;--fg1:#fff;--dot1:#fff}
+  .v-orange{--bg0:var(--orange);--fg0:#fff;--dot0:#fff;--bg1:#141414;--fg1:#fff;--dot1:var(--orange)}
+  .v-line{--bg0:transparent;--fg0:#141414;--dot0:var(--orange);--bg1:var(--orange);--fg1:#141414;--dot1:#141414;
+    box-shadow:inset 0 0 0 1.5px #141414}
+  .v-line .fill{box-shadow:inset 0 0 0 1.5px #141414}
+  .v-light{box-shadow:0 1px 0 #fff inset,0 8px 18px -8px rgba(20,20,20,.22),0 2px 4px rgba(20,20,20,.06)}
+
+  /* 크기 */
+  .sm{--h:40px;--fs:14px;--d:6px;--px:16px}
+  .lg{--h:62px;--fs:18px;--d:10px;--px:26px}
+
+  @media (max-width:460px),(max-height:400px){:root{--s:.82}}
+  @media (max-height:300px){:root{--s:.72}.hint{display:none}}
+  @media (prefers-reduced-motion:reduce){
+    :root{--dur:1ms}
+    .dbtn,.fill .dot{transition-duration:1ms!important;transition-delay:0s!important}
+    .dbtn:active{transform:none}
+  }
+</style>
+</head>
+<body>
+  <main class="wrap">
+    <div class="row">
+      <button class="dbtn v-black"><span class="lbl">프로젝트 시작</span><i class="dot"></i></button>
+      <button class="dbtn v-light"><span class="lbl">작업 보기</span><i class="dot"></i></button>
+    </div>
+    <div class="row">
+      <button class="dbtn v-orange"><span class="lbl">소식 받기</span><i class="dot"></i></button>
+      <button class="dbtn v-line"><span class="lbl">인사하기</span><i class="dot"></i></button>
+    </div>
+    <div class="row">
+      <button class="dbtn v-black sm"><span class="lbl">작게</span><i class="dot"></i></button>
+      <button class="dbtn v-black"><span class="lbl">보통</span><i class="dot"></i></button>
+      <button class="dbtn v-black lg"><span class="lbl">크게</span><i class="dot"></i></button>
+    </div>
+    <p class="hint">버튼 위에 마우스를 올려 보세요</p>
+  </main>
+<script>
+  // 각 버튼에 뒤집힌 색 레이어(같은 글자 + 반대편 점)를 붙인다
+  document.querySelectorAll('.dbtn').forEach(btn => {
+    const fill = document.createElement('span');
+    fill.className = 'fill';
+    fill.setAttribute('aria-hidden', 'true');
+    const dot = document.createElement('i'); dot.className = 'dot';
+    const lbl = document.createElement('span'); lbl.className = 'lbl';
+    lbl.textContent = btn.querySelector('.lbl').textContent;
+    fill.append(dot, lbl);
+    btn.append(fill);
+  });
+</script>
+</body>
+</html>

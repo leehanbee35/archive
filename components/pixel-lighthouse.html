@@ -1,0 +1,276 @@
+<!doctype html>
+<!-- meta: {"name":"등대 바닷가 스위치","cat":"스위치","desc":"구슬을 밀면 등대 바닷가가 노을을 지나 밤으로 바뀌고 등대 불이 켜져요","added":"2026-11-27"} -->
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<title>등대 바닷가 스위치</title>
+<style>
+  :root{--n:0;--bz1:#f4ecdc;--bz2:#e6dac4;--ink:#6f6455}
+  *{box-sizing:border-box;margin:0}
+  html,body{height:100%}
+  body{overflow:hidden;background:#ece4d6;color:var(--ink);
+    font-family:"Pretendard Variable",Pretendard,-apple-system,"Malgun Gothic",sans-serif}
+  .stage{position:absolute;left:50%;top:50%;width:420px;
+    transform:translate(-50%,-50%) scale(var(--s,1));
+    display:flex;flex-direction:column;align-items:center;gap:26px}
+  .holder{position:relative;width:420px;height:150px}
+  .halo{position:absolute;inset:0;border-radius:999px;pointer-events:none;opacity:var(--n);
+    box-shadow:0 0 34px 8px rgba(255,186,96,.5),0 0 90px 26px rgba(255,150,70,.22)}
+  .switch{position:relative;display:block;width:420px;height:150px;border-radius:999px;border:0;padding:0;cursor:grab;
+    background:linear-gradient(var(--bz1),var(--bz2));
+    box-shadow:inset 0 2px 0 rgba(255,255,255,.75),inset 0 -5px 10px rgba(110,85,50,.2),
+      0 18px 36px rgba(70,50,25,.22),0 3px 8px rgba(70,50,25,.16);
+    touch-action:none;-webkit-tap-highlight-color:transparent}
+  .switch:active{cursor:grabbing}
+  .switch:focus-visible{outline:3px solid #e0a04a;outline-offset:8px}
+  .win{position:absolute;inset:14px;border-radius:999px;overflow:hidden;background:#222}
+  .win::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+    box-shadow:inset 0 5px 12px rgba(50,32,14,.5),inset 0 -2px 6px rgba(255,255,255,.25),inset 0 0 0 2px rgba(90,68,40,.3)}
+  canvas{display:block;width:392px;height:122px;image-rendering:pixelated}
+  .cap{font-size:15px;letter-spacing:-.01em;display:flex;gap:10px;align-items:center;
+    transition:opacity .3s ease,filter .3s ease}
+  .cap b{font-weight:700;font-size:13px;letter-spacing:.12em;padding:4px 10px;border-radius:999px;
+    background:rgba(255,255,255,calc(.55 - var(--n)*.45));box-shadow:0 0 0 1px rgba(120,100,70,.18)}
+  .cap.out{opacity:0;filter:blur(5px)}
+  @media (prefers-reduced-motion:reduce){.cap{transition:none}}
+</style>
+</head>
+<body>
+<main class="stage" id="stage">
+  <div class="holder">
+    <div class="halo"></div>
+    <button class="switch" id="sw" role="switch" aria-checked="false" aria-label="바닷가에 밤 켜기">
+      <span class="win"><canvas id="cv" width="392" height="122"></canvas></span>
+    </button>
+  </div>
+  <p class="cap" id="cap" aria-live="polite"><b id="capA">낮</b><span id="capB">파도 소리 나는 오후 바다</span></p>
+</main>
+<script>
+const W=96,H=30,TAU=Math.PI*2;
+const TEXT={day:['낮','파도 소리 나는 오후 바다'],night:['밤','등대가 바다를 비추는 밤']};
+const BG=['#ebe3d3','#232838'],BZ1=['#f4ecdc','#d2c4aa'],BZ2=['#e6dac4','#b8a88c'],INK=['#6a6052','#d3cfd8'];
+
+/* ---------- 공통 도구 ---------- */
+const sc=document.createElement('canvas');sc.width=W;sc.height=H;
+const g=sc.getContext('2d',{willReadFrequently:true});
+const cv=document.getElementById('cv'),c=cv.getContext('2d');
+const sw=document.getElementById('sw'),stage=document.getElementById('stage'),root=document.documentElement;
+const cl=(x,a=0,b=1)=>x<a?a:x>b?b:x;
+const sm=x=>{x=cl(x);return x*x*(3-2*x)};
+const hash=i=>{const s=Math.sin(i*127.1+311.7)*43758.5453;return s-Math.floor(s)};
+const HC={};
+function hx(h){let r=HC[h];if(!r){const v=parseInt(h.slice(1),16);r=HC[h]=[v>>16,(v>>8)&255,v&255]}return r}
+const lerpA=(A,B,t)=>[A[0]+(B[0]-A[0])*t,A[1]+(B[1]-A[1])*t,A[2]+(B[2]-A[2])*t];
+const css=A=>`rgb(${A[0]|0},${A[1]|0},${A[2]|0})`;
+const mix=(a,b,t)=>css(lerpA(hx(a),hx(b),t));
+let N=0,L=0,T=0;
+function R(x,y,w,h,col){g.fillStyle=col;g.fillRect(x|0,y|0,w,h)}
+function M(x,y,w,h,d,n){R(x,y,w,h,mix(d,n,N))}
+function Lit(x,y,w,h,d,n,on){R(x,y,w,h,css(lerpA(lerpA(hx(d),hx(n),N),hx(on),L)))}
+function V(x,y,w,h,dt,db,nt,nb){for(let i=0;i<h;i++){const t=h>1?i/(h-1):0;
+  R(x,y+i,w,1,css(lerpA(lerpA(hx(dt),hx(db),t),lerpA(hx(nt),hx(nb),t),N)))}}
+function glow(x,y,r,col,a){if(a<.01)return;const k=hx(col).join(','),gr=g.createRadialGradient(x,y,0,x,y,r);
+  gr.addColorStop(0,`rgba(${k},${a})`);gr.addColorStop(1,`rgba(${k},0)`);
+  g.globalCompositeOperation='lighter';g.fillStyle=gr;g.fillRect(x-r,y-r,r*2,r*2);g.globalCompositeOperation='source-over'}
+
+/* ---------- 장면: 등대 바닷가 ---------- */
+// 낮 → 노을 → 밤 세 단계 색
+function S3(d,s,n){return N<.5?lerpA(hx(d),hx(s),N*2):lerpA(hx(s),hx(n),(N-.5)*2)}
+function R3(x,y,w,h,d,s,n){R(x,y,w,h,css(S3(d,s,n)))}
+const STARS=[];for(let i=0;i<34;i++)STARS.push([hash(i*3+1)*W|0,hash(i*5+2)*15|0,hash(i*7+3)]);
+const WAVES=[];for(let i=0;i<34;i++)WAVES.push([hash(i+50)*W,18+(hash(i+60)*11|0),1+hash(i+70),2+(hash(i+80)*2|0)]);
+const shoreY=x=>x<54?99:Math.max(21,Math.round(28-(x-54)*.35));
+const cliffY=x=>x<=22?15:Math.round(15+(x-22)*1.4);
+function scene(){
+  const dusk=Math.sin(Math.PI*N),starA=sm((N-.55)/.35);
+  // 하늘
+  for(let y=0;y<17;y++){const t=Math.floor(y/17*6)/5;
+    R(0,y,W,1,css(lerpA(S3('#62b6ee','#5a4f9e','#070d28'),S3('#d2eef9','#ffb070','#24305e'),t)))}
+  for(const[x,y,s]of STARS){const a=starA*(.5+.5*Math.sin(T*(1.4+s*3)+s*50));if(a<.05)continue;
+    g.globalAlpha=a;R(x,y,1,1,s>.8?'#fff6d8':'#cdd9ff')}
+  g.globalAlpha=1;
+  // 해 (지면서 주황빛) / 달
+  const sy=4+sm(N/.6)*15,sc2=css(lerpA(hx('#fff3b0'),hx('#ff7a3a'),cl(N/.6)));
+  R(57,sy,4,1,sc2);R(56,sy+1,6,3,sc2);R(57,sy+4,4,1,sc2);
+  glow(59,sy+2.5,12,'#ffb060',.4*dusk);
+  const mA=sm((N-.6)/.3);g.globalAlpha=mA;
+  R(75,3,3,1,'#f4f0c8');R(74,4,5,2,'#f4f0c8');R(75,6,3,1,'#f4f0c8');R(76,4,1,1,'#d8d2a6');g.globalAlpha=1;
+  glow(76.5,5,7,'#c8d4ff',.3*mA);
+  // 갈매기 (낮)
+  g.globalAlpha=cl(1-N*1.6);
+  for(let i=0;i<2;i++){const x=((30+i*9+T*2.2)%(W+10))-5,y=6+i*2+Math.round(Math.sin(T*2+i));
+    R(x,y,1,1,'#ffffff');R(x+1,y+1,1,1,'#ffffff');R(x+2,y,1,1,'#ffffff')}
+  g.globalAlpha=1;
+  // 바다
+  for(let y=17;y<H;y++){const t=(y-17)/12;R(0,y,W,1,css(lerpA(S3('#3d9ad6','#b0708a','#0b1b3a'),S3('#2a78b8','#6a4a78','#081430'),t)))}
+  const wc=css(S3('#a8dcf6','#ffc59a','#2c4c80'));
+  for(const[x0,y,sp,len]of WAVES){const x=(x0+T*sp*1.6)%W,a=.4+.6*Math.abs(Math.sin(T*sp+x0));
+    g.globalAlpha=a;R(x,y,len,1,wc)}
+  g.globalAlpha=1;
+  // 해 그림자 / 달빛 반짝임
+  for(let y=17;y<27;y++){const off=Math.round(Math.sin(T*2.2+y*1.3));
+    if(dusk>.05&&N<.7){g.globalAlpha=dusk*(y%2?.5:.8)*(1-cl((N-.55)/.15));R(57+off,y,4-(y%2),1,'#ffb070')}
+    if(mA>.02){g.globalAlpha=mA*(.35+.4*Math.abs(Math.sin(T*2.6+y*1.7)));R(75+off,y,2+(y%3?0:1),1,'#eeeac4')}}
+  g.globalAlpha=1;
+  // 돛단배
+  const bx=Math.round(38+Math.sin(T*.15)*6),by=20+(Math.sin(T*1.6)>0?0:1);
+  R3(bx,by,7,1,'#8a5430','#6a3a2a','#2a1e24');R3(bx+1,by+1,5,1,'#6a3e22','#4a2a22','#1e161c');
+  M(bx+3,by-7,1,7,'#5a3a20','#201820');
+  for(let k=0;k<6;k++)R3(bx+4,by-7+k,1+(k*.7|0),1,'#fbf6ea','#ffd2b0','#5a6078');
+  for(let k=1;k<5;k++)R3(bx+3-(k*.5|0)-1,by-6+k,(k*.5|0)+1,1,'#f0e6d0','#f0b898','#4a5068');
+  R(bx+3,by-8,2,1,'#e0483a');Lit(bx+1,by-1,1,1,'#8a5430','#2a1e24','#ffd36b');
+  // 절벽
+  for(let x=0;x<31;x++){const t=cliffY(x);R3(x,t,1,1,'#6ab04c','#8a8a48','#1e3a34');R3(x,t+1,1,H-t,'#9a8a78','#8a5a5a','#2a2a3c')}
+  for(let i=0;i<16;i++){const x=hash(i+300)*28|0,y=cliffY(x)+2+(hash(i+310)*8|0);R3(x,y,2,1,'#867562','#704848','#22222f')}
+  // 등대
+  for(let y=4;y<15;y++){const w=4+((y-4)/10*2.4|0),x=12-(w>>1),red=Math.floor((y-4)/3)%2===0;
+    if(red)M(x,y,w,1,'#d8443a','#5a2a34');else M(x,y,w,1,'#f6f0e4','#62627a');
+    M(x+w-1,y,1,1,red?'#b0302a':'#d6cfc0',red?'#46202a':'#4e4e64')}
+  M(11,12,2,3,'#6a4a30','#2a2028');M(9,3,7,1,'#3a3a40','#1a1a22');
+  Lit(10,1,5,2,'#cfe8f0','#3a4458','#fff2a0');Lit(11,1,2,2,'#e8f4f8','#4a5468','#ffffff');
+  M(10,0,5,1,'#d8443a','#5a2a34');
+  // 작은 집
+  M(22,7,1,2,'#8a4030','#2a1c20');M(19,8,3,1,'#b0503a','#3a2428');M(17,9,7,1,'#b0503a','#3a2428');M(16,10,9,1,'#983e2e','#30202a');
+  M(17,11,7,4,'#f2ece0','#55566a');M(17,14,7,1,'#d8d0c0','#46475a');
+  Lit(18,12,2,2,'#7ab0d0','#2a3048','#ffd36b');Lit(21,12,1,2,'#7ab0d0','#2a3048','#ffd36b');M(22,12,1,3,'#7a5a3a','#2a2028');
+  // 모래사장
+  for(let x=54;x<W;x++){const t=shoreY(x);R3(x,t,1,H-t,'#ecd59a','#e0a878','#3e3a52');
+    const f=t-1+Math.round(.5+.5*Math.sin(T*1.4+x*.08));g.globalAlpha=.75;R3(x,f,1,1,'#ffffff','#ffe0c8','#7a8cb8');g.globalAlpha=1}
+  for(let i=0;i<18;i++){const x=56+(hash(i+400)*39|0),y=shoreY(x)+1+(hash(i+410)*5|0);R3(x,y,1,1,'#d4b878','#c08a62','#34304a')}
+  // 가로등
+  M(70,13,1,10,'#3a3a44','#1e1e28');M(69,22,3,1,'#3a3a44','#1e1e28');M(69,11,3,1,'#3a3a44','#1e1e28');
+  Lit(69,12,3,1,'#d8e0e0','#3a3a48','#ffe08a');
+  // 벤치
+  M(73,18,8,1,'#a06a3a','#3a2a2a');M(73,19,8,1,'#8a5a30','#30222a');M(72,21,10,1,'#a06a3a','#3a2a2a');
+  M(74,19,1,2,'#5a3a20','#1e161a');M(79,19,1,2,'#5a3a20','#1e161a');M(73,22,1,2,'#5a3a20','#1e161a');M(80,22,1,2,'#5a3a20','#1e161a');
+  // 우산소나무
+  for(let y=11;y<25;y++){const x=85-Math.round((24-y)/5);M(x,y,y>20?2:1,1,'#7a4a2a','#2a1e22')}
+  M(80,11,3,1,'#7a4a2a','#2a1e22');M(85,10,3,1,'#7a4a2a','#2a1e22');
+  const ps=Math.round(Math.sin(T*.8)*.6);
+  M(79+ps,5,12,1,'#5e9a4e','#1e3a38');M(76+ps,6,18,1,'#4a8a44','#18302e');M(75+ps,7,21,2,'#3f7a3e','#142a2c');
+  M(76+ps,9,19,1,'#3f7a3e','#142a2c');M(78+ps,10,14,1,'#2e5a30','#0e2022');
+  for(let i=0;i<8;i++)M(77+ps+(hash(i+500)*16|0),6+(hash(i+510)*3|0),1,1,'#6aaa58','#22403c');
+  // 노을빛
+  if(dusk>.02){g.fillStyle=`rgba(255,120,60,${(.16*dusk).toFixed(3)})`;g.fillRect(0,0,W,H)}
+  // 불빛
+  glow(19.5,12.5,6,'#ffcf70',.45*L);glow(70,12.5,12,'#ffc870',.5*L);glow(70,21,8,'#ffb860',.28*L);
+  glow(bx+1.5,by-.5,3,'#ffd36b',.4*L);
+  if(L>.02){
+    const a=T*1.1,dir=Math.cos(a),flare=Math.pow(Math.max(0,Math.sin(a)),8),ex=12+dir*95;
+    const gr=g.createLinearGradient(12,2,ex,2);gr.addColorStop(0,`rgba(255,240,170,${(.55*L).toFixed(3)})`);gr.addColorStop(1,'rgba(255,240,170,0)');
+    g.globalCompositeOperation='lighter';g.fillStyle=gr;g.beginPath();g.moveTo(12,1);g.lineTo(ex,-4);g.lineTo(ex,9);g.lineTo(12,2.5);g.closePath();g.fill();
+    g.globalCompositeOperation='source-over';
+    glow(12,1.8,5,'#ffe08a',.7*L);glow(12,1.8,6+9*flare,'#fff6c8',.7*L*flare);
+  }
+}
+
+/* ---------- 유리구슬 & 렌더 ---------- */
+let p=0,v=0,target=0,last=performance.now(),scale=1,dragging=false,down=null,lastN=-1;
+const mq=matchMedia('(prefers-reduced-motion: reduce)');let reduce=mq.matches;
+if(mq.addEventListener)mq.addEventListener('change',e=>reduce=e.matches);
+
+function fit(){
+  scale=cl(Math.min((innerWidth-32)/470,(innerHeight-24)/240),.35,2.6);
+  stage.style.setProperty('--s',scale);
+  const k=cl((window.devicePixelRatio||1)*scale,1,4);
+  cv.width=Math.round(392*k);cv.height=Math.round(122*k);
+}
+function mosaic(kx,ky,r,MG,sx,sy){
+  const d=g.getImageData(0,0,W,H).data,cs=r/5.5;
+  c.globalCompositeOperation='screen';
+  for(let j=-6;j<6;j++)for(let i=-6;i<6;i++){
+    const mx=kx+(i+.5)*cs,my=ky+(j+.5)*cs,dx=mx-kx,dy=my-ky;if(dx*dx+dy*dy>r*r*.88)continue;
+    const lx=cl(((kx+dx/MG)/sx)|0,0,W-1),ly=cl(((ky+dy/MG)/sy)|0,0,H-1),o=(ly*W+lx)*4;
+    const lum=(d[o]*.3+d[o+1]*.59+d[o+2]*.11)/255;
+    const tw=.5+.5*Math.sin(T*2.4+hash(i*17+j*131)*TAU);
+    const al=N*(.04+.6*lum*lum)*tw;if(al<.02)continue;
+    c.fillStyle=`rgba(${d[o]},${d[o+1]},${d[o+2]},${al.toFixed(3)})`;
+    c.fillRect(mx-cs/2+1,my-cs/2+1,cs-2,cs-2);
+    if(tw>.93&&lum>.35){c.fillStyle=`rgba(255,255,255,${(N*.8).toFixed(3)})`;c.fillRect(mx-1,my-1,2,2)}
+  }
+  c.globalCompositeOperation='source-over';
+}
+function paint(){
+  const DW=cv.width,DH=cv.height,sx=DW/W,sy=DH/H;
+  c.imageSmoothingEnabled=false;
+  c.drawImage(sc,0,0,DW,DH);
+  const r=DH*.45,x0=DH*.5,x1=DW-DH*.5,kx=x0+(x1-x0)*cl(p,-.03,1.03),ky=DH*.5;
+  let gr;
+  // 그림자
+  c.save();c.translate(kx+r*.12,ky+r*.66);c.scale(1,.36);
+  gr=c.createRadialGradient(0,0,0,0,0,r*1.05);gr.addColorStop(0,'rgba(20,12,4,.45)');gr.addColorStop(1,'rgba(20,12,4,0)');
+  c.fillStyle=gr;c.beginPath();c.arc(0,0,r*1.05,0,TAU);c.fill();c.restore();
+  // 렌즈 (확대)
+  c.save();c.beginPath();c.arc(kx,ky,r,0,TAU);c.clip();
+  const MG=1.6;c.drawImage(sc,0,0,W,H,kx-kx*MG,ky-ky*MG,DW*MG,DH*MG);
+  // 가장자리 굴절 고리
+  c.save();c.beginPath();c.arc(kx,ky,r,0,TAU);c.arc(kx,ky,r*.86,0,TAU,true);c.clip();
+  const M2=1.15;c.drawImage(sc,0,0,W,H,kx-kx*M2,ky-ky*M2,DW*M2,DH*M2);
+  c.fillStyle='rgba(255,255,255,.07)';c.fillRect(kx-r,ky-r,2*r,2*r);c.restore();
+  if(N>.02)mosaic(kx,ky,r,MG,sx,sy);
+  gr=c.createRadialGradient(kx-r*.25,ky-r*.3,r*.1,kx,ky,r);
+  gr.addColorStop(0,'rgba(255,255,255,.1)');gr.addColorStop(.68,'rgba(255,255,255,0)');gr.addColorStop(1,'rgba(30,20,50,.34)');
+  c.fillStyle=gr;c.fillRect(kx-r,ky-r,2*r,2*r);
+  gr=c.createRadialGradient(kx+r*.35,ky+r*.55,0,kx+r*.35,ky+r*.55,r*.55);
+  gr.addColorStop(0,`rgba(255,${(225-40*N)|0},${(170-60*N)|0},${(.25+.25*N).toFixed(3)})`);gr.addColorStop(1,'rgba(255,220,170,0)');
+  c.fillStyle=gr;c.fillRect(kx-r,ky-r,2*r,2*r);
+  // 초승달 하이라이트
+  c.save();c.beginPath();c.arc(kx,ky,r*.93,0,TAU);c.clip();
+  c.beginPath();c.rect(kx-r,ky-r,2*r,2*r);c.moveTo(kx+r*.13+r*.9,ky+r*.17);c.arc(kx+r*.13,ky+r*.17,r*.9,0,TAU,true);
+  gr=c.createLinearGradient(kx-r*.7,ky-r*.8,kx,ky);gr.addColorStop(0,'rgba(255,255,255,.72)');gr.addColorStop(1,'rgba(255,255,255,0)');
+  c.fillStyle=gr;c.fill('evenodd');c.restore();
+  c.restore();
+  c.fillStyle='rgba(255,255,255,.9)';c.beginPath();c.ellipse(kx-r*.42,ky-r*.52,r*.13,r*.065,-.7,0,TAU);c.fill();
+  c.lineWidth=Math.max(1,r*.035);c.strokeStyle='rgba(255,255,255,.55)';c.beginPath();c.arc(kx,ky,r-c.lineWidth/2,0,TAU);c.stroke();
+  c.lineWidth=Math.max(1,r*.02);c.strokeStyle='rgba(40,28,12,.3)';c.beginPath();c.arc(kx,ky,r+c.lineWidth/2,0,TAU);c.stroke();
+}
+function chrome(){
+  document.body.style.background=mix(BG[0],BG[1],N);
+  root.style.setProperty('--n',N.toFixed(3));
+  root.style.setProperty('--bz1',mix(BZ1[0],BZ1[1],N));root.style.setProperty('--bz2',mix(BZ2[0],BZ2[1],N));
+  root.style.setProperty('--ink',mix(INK[0],INK[1],N));
+}
+function frame(now){
+  const dt=Math.min(.05,(now-last)/1000)||0;last=now;
+  if(!reduce)T+=dt;
+  if(!dragging){
+    if(reduce){p=target;v=0}
+    else for(let s=0;s<2;s++){const h=dt/2;v+=(170*(target-p)-19*v)*h;p+=v*h}
+  }
+  N=sm(p);L=sm((N-.45)/.45);
+  scene();paint();
+  if(Math.abs(N-lastN)>.001){lastN=N;chrome()}
+  requestAnimationFrame(frame);
+}
+
+/* ---------- 조작 ---------- */
+const cap=document.getElementById('cap'),capA=document.getElementById('capA'),capB=document.getElementById('capB');
+let capTimer=0;
+function setOn(on){
+  const nt=on?1:0;if(nt!==target){
+    clearTimeout(capTimer);cap.classList.add('out');
+    capTimer=setTimeout(()=>{const t=on?TEXT.night:TEXT.day;capA.textContent=t[0];capB.textContent=t[1];cap.classList.remove('out')},reduce?0:260);
+  }
+  target=nt;sw.setAttribute('aria-checked',String(on));
+}
+sw.addEventListener('pointerdown',e=>{down={x:e.clientX,p0:p};dragging=false;sw.setPointerCapture(e.pointerId)});
+sw.addEventListener('pointermove',e=>{
+  if(!down)return;const dx=(e.clientX-down.x)/scale;
+  if(!dragging&&Math.abs(dx)>5)dragging=true;
+  if(dragging){p=cl(down.p0+dx/270);v=0}
+});
+sw.addEventListener('pointerup',()=>{if(!down)return;if(dragging)setOn(p>.5);else setOn(target<.5);down=null;dragging=false});
+sw.addEventListener('pointercancel',()=>{if(dragging)setOn(p>.5);down=null;dragging=false});
+sw.addEventListener('click',e=>e.preventDefault());
+sw.addEventListener('keydown',e=>{
+  if(e.key===' '||e.key==='Enter'){e.preventDefault();if(!e.repeat)setOn(target<.5)}
+  else if(e.key==='ArrowRight'){e.preventDefault();setOn(true)}
+  else if(e.key==='ArrowLeft'){e.preventDefault();setOn(false)}
+});
+addEventListener('resize',fit);
+fit();requestAnimationFrame(frame);
+</script>
+</body>
+</html>

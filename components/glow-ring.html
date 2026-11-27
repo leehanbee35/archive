@@ -1,0 +1,126 @@
+<!doctype html>
+<!-- meta: {"name":"무지개 빛 링 버튼","cat":"버튼","desc":"아이콘 둘레의 빛 고리가 돌며 무지개빛으로 번지는 내비게이션 버튼","added":"2026-11-27"} -->
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<title>무지개 빛 링 버튼</title>
+<style>
+  *{box-sizing:border-box;margin:0}
+  html,body{height:100%}
+  body{display:grid;place-items:center;overflow:hidden;background:#000;color:#ececf0;
+    font-family:"Pretendard Variable",Pretendard,-apple-system,"Malgun Gothic",sans-serif}
+  .list{display:flex;flex-direction:column;gap:18px;transform-origin:center}
+
+  .nav{position:relative;display:flex;align-items:center;gap:22px;width:260px;height:80px;padding:0 26px 0 12px;
+    border-radius:999px;background:#000;border:1.5px solid rgba(214,214,220,.5);color:inherit;
+    font:inherit;font-size:22px;font-weight:600;letter-spacing:-.02em;cursor:pointer;outline:none;
+    -webkit-tap-highlight-color:transparent;transition:border-color .35s ease,box-shadow .35s ease}
+  .nav:hover,.nav:focus-visible{border-color:rgba(240,240,246,.9);box-shadow:0 0 26px rgba(150,130,255,.14)}
+  .nav:focus-visible{outline:2px solid #fff;outline-offset:5px}
+  .lbl{flex:1;text-align:left}
+  .chev{width:16px;height:16px;color:#77777f;transition:transform .35s ease,color .35s}
+  .nav:hover .chev,.nav:focus-visible .chev{transform:translateX(3px);color:#cfcfd6}
+
+  .well{position:relative;width:56px;height:56px;flex:none}
+  .disc{position:absolute;inset:0;border-radius:50%;display:grid;place-items:center;z-index:1;
+    background:radial-gradient(circle at 40% 28%,#202127,#0a0a0c 70%);
+    box-shadow:inset 0 1px 1px rgba(255,255,255,.14),inset 0 -3px 7px rgba(0,0,0,.85);
+    transition:transform .2s ease}
+  .nav:active .disc{transform:scale(.94)}
+  .disc svg{width:28px;height:28px;filter:drop-shadow(0 1px 1px rgba(0,0,0,.7)) drop-shadow(0 0 3px rgba(255,255,255,.12))}
+
+  /* 빛 고리 */
+  .ring{position:absolute;inset:-5px;border-radius:50%;pointer-events:none;filter:hue-rotate(var(--h));
+    transition:inset .45s ease}
+  .nav:hover .ring,.nav:focus-visible .ring{inset:-6px}
+  .ring>span{position:absolute;inset:0}
+  .ring .g{filter:blur(6px) brightness(1.25);opacity:.85;transition:filter .45s ease,opacity .45s ease}
+  .nav:hover .ring .g,.nav:focus-visible .ring .g{filter:blur(9px) brightness(1.7);opacity:1}
+  .ring i{position:absolute;inset:0;border-radius:50%;
+    -webkit-mask:radial-gradient(closest-side,transparent calc(100% - 3.5px),#000 calc(100% - 3px));
+            mask:radial-gradient(closest-side,transparent calc(100% - 3.5px),#000 calc(100% - 3px));
+    animation:spin 4.5s linear infinite}
+  .arc{background:conic-gradient(from var(--a0),transparent 0 30%,#2f6bff 48%,#8b4dff 63%,#ff8a3d 79%,#fff 88%,transparent 93%)}
+  .rb{opacity:0;transition:opacity .5s ease;
+    background:conic-gradient(from var(--a0),#ff4d6d,#ffb13d,#f7ff5a,#4dff9a,#3dd5ff,#5b6bff,#c04dff,#ff4d6d)}
+  .nav:hover .rb,.nav:focus-visible .rb{opacity:1}
+  .nav:hover .ring i,.nav:focus-visible .ring i{animation-duration:3s}
+  @keyframes spin{to{transform:rotate(1turn)}}
+
+  /* 누를 때 맥동 */
+  .nav.pulse .ring{animation:pulse .6s ease-out}
+  @keyframes pulse{0%{transform:scale(1)}30%{transform:scale(1.13);filter:hue-rotate(var(--h)) brightness(2)}100%{transform:scale(1)}}
+  .ripple{position:absolute;inset:-5px;border-radius:50%;border:2px solid rgba(255,255,255,.7);opacity:0;pointer-events:none}
+  .nav.pulse .ripple{animation:ripple .7s ease-out}
+  @keyframes ripple{0%{opacity:.8;transform:scale(1)}100%{opacity:0;transform:scale(1.75)}}
+
+  @media (prefers-reduced-motion:reduce){
+    .ring i,.nav.pulse .ring,.nav.pulse .ripple{animation:none!important}
+    *{transition:none!important}
+  }
+</style>
+</head>
+<body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <linearGradient id="metal" gradientUnits="userSpaceOnUse" x1="5" y1="3" x2="23" y2="25">
+        <stop offset="0" stop-color="#ffffff"/>
+        <stop offset=".28" stop-color="#c9ced6"/>
+        <stop offset=".5" stop-color="#868c95"/>
+        <stop offset=".7" stop-color="#eef1f4"/>
+        <stop offset="1" stop-color="#9aa0a8"/>
+      </linearGradient>
+    </defs>
+  </svg>
+
+  <nav class="list" id="list" aria-label="주 메뉴">
+    <button class="nav" style="--h:0deg;--a0:0deg">
+      <span class="well" aria-hidden="true">
+        <span class="ring"><span class="g"><i class="arc"></i><i class="rb"></i></span><span><i class="arc"></i><i class="rb"></i></span></span>
+        <span class="ripple"></span>
+        <span class="disc"><svg viewBox="0 0 28 28"><path fill="url(#metal)" d="M14 4.2 3.7 12.5c-.5.4-.2 1.3.5 1.3H6v8.9c0 .7.5 1.1 1.1 1.1h4.4v-6.2h5v6.2h4.4c.6 0 1.1-.4 1.1-1.1v-8.9h1.8c.7 0 1-.9.5-1.3Z"/></svg></span>
+      </span>
+      <span class="lbl">홈</span>
+      <svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><path d="m6 3.5 4.5 4.5L6 12.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+
+    <button class="nav" style="--h:38deg;--a0:120deg">
+      <span class="well" aria-hidden="true">
+        <span class="ring"><span class="g"><i class="arc"></i><i class="rb"></i></span><span><i class="arc"></i><i class="rb"></i></span></span>
+        <span class="ripple"></span>
+        <span class="disc"><svg viewBox="0 0 28 28" fill="none" stroke="url(#metal)" stroke-linecap="round"><circle cx="12.3" cy="12.3" r="6.8" stroke-width="3"/><path d="m17.6 17.6 5.6 5.6" stroke-width="3.4"/></svg></span>
+      </span>
+      <span class="lbl">검색</span>
+      <svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><path d="m6 3.5 4.5 4.5L6 12.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+
+    <button class="nav" style="--h:-42deg;--a0:240deg">
+      <span class="well" aria-hidden="true">
+        <span class="ring"><span class="g"><i class="arc"></i><i class="rb"></i></span><span><i class="arc"></i><i class="rb"></i></span></span>
+        <span class="ripple"></span>
+        <span class="disc"><svg viewBox="0 0 28 28" fill="none" stroke="url(#metal)"><circle cx="14" cy="14" r="8.2" stroke-width="4.2" stroke-dasharray="3.2 3.24"/><circle cx="14" cy="14" r="5.6" stroke-width="3.2"/></svg></span>
+      </span>
+      <span class="lbl">설정</span>
+      <svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><path d="m6 3.5 4.5 4.5L6 12.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+  </nav>
+<script>
+  const list = document.getElementById('list');
+  // 작은 화면에서는 전체를 비율에 맞춰 축소
+  function fit() {
+    const s = Math.min(1, (innerWidth - 32) / 260, (innerHeight - 28) / 276);
+    list.style.transform = s < 1 ? `scale(${Math.max(.3, s)})` : '';
+  }
+  addEventListener('resize', fit); fit();
+
+  document.querySelectorAll('.nav').forEach(btn => {
+    btn.addEventListener('click', () => {
+      btn.classList.remove('pulse'); void btn.offsetWidth; btn.classList.add('pulse');
+    });
+    btn.addEventListener('animationend', e => { if (e.animationName === 'ripple') btn.classList.remove('pulse'); });
+  });
+</script>
+</body>
+</html>

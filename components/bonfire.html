@@ -1,0 +1,311 @@
+<!doctype html>
+<!-- meta: {"name":"받은편지함 모닥불","cat":"화면","desc":"버튼을 길게 누르면 읽지 않은 메일이 불타 사라지고 고요한 밤하늘 화면으로 바뀌어요","added":"2026-11-27"} -->
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<title>받은편지함 모닥불</title>
+<style>
+  :root{--heat:0;--ease:cubic-bezier(.65,0,.25,1)}
+  *{box-sizing:border-box;margin:0}
+  html,body{height:100%;overflow:hidden}
+  body{font-family:"Pretendard Variable",Pretendard,-apple-system,"Malgun Gothic",sans-serif;background:#0a0d0c;color:#1b1a18;
+    -webkit-font-smoothing:antialiased}
+  .screen{position:absolute;inset:0;display:flex;flex-direction:column;transition:opacity 1.1s var(--ease),filter 1.1s var(--ease)}
+  .screen.off{opacity:0;pointer-events:none;visibility:hidden;transition:opacity 1.1s var(--ease),filter 1.1s var(--ease),visibility 0s 1.1s}
+  header{display:flex;justify-content:space-between;align-items:flex-start;padding:clamp(12px,3vw,28px) clamp(14px,3.4vw,34px);gap:12px;flex:none}
+  .mark{font-weight:800;font-size:15px;letter-spacing:-.03em}
+  .tag{font-size:12px;color:#8a857d;margin-top:3px}
+  .hint{font-size:12px;color:#8a857d;white-space:nowrap;display:flex;align-items:center;gap:6px}
+  .hint kbd{font:inherit;font-size:11px;border:1px solid currentColor;border-radius:5px;padding:0 5px;opacity:.7}
+  main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
+    padding:0 18px clamp(16px,6vh,60px);gap:clamp(8px,2.2vh,18px);min-height:0}
+  .status{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;color:#6d685f;font-variant-numeric:tabular-nums}
+  .dot{width:7px;height:7px;border-radius:50%;background:#2fb36b;box-shadow:0 0 0 3px rgba(47,179,107,.18)}
+  h1{font-size:clamp(26px,min(7vw,11vh),68px);line-height:1.08;letter-spacing:-.045em;font-weight:800}
+  .body{font-size:clamp(13px,1.6vw,16px);color:#7d786f;max-width:34em;line-height:1.5}
+  .small{font-size:12px;color:#9a948a}
+
+  /* 화면 1 */
+  #s1{background:#f6f3ee}
+  #s1::before{content:"";position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(120% 70% at 50% 115%,rgba(255,120,30,calc(var(--heat)*.55)),rgba(255,170,60,calc(var(--heat)*.25)) 45%,transparent 75%);
+    }
+  #s1>*{position:relative}
+  .ch{display:inline-block;transition:color .25s,text-shadow .25s,opacity .25s}
+  .ch.warm{color:#7a3a12;text-shadow:0 0 6px rgba(255,140,40,.55)}
+  .ch.char{color:#2a1a10;text-shadow:0 0 10px rgba(255,110,20,.9),0 0 2px #ff9b3d;animation:flick .18s steps(2) infinite alternate}
+  @keyframes flick{to{opacity:.72;text-shadow:0 0 14px rgba(255,90,10,1),0 0 3px #ffc070}}
+
+  .hold{position:relative;border:0;border-radius:999px;background:#151413;color:#fff;font:inherit;font-weight:650;font-size:15px;
+    padding:15px 28px;cursor:pointer;letter-spacing:-.01em;touch-action:none;user-select:none;-webkit-user-select:none;
+    box-shadow:0 10px 26px rgba(20,18,16,.22),0 2px 5px rgba(20,18,16,.18);
+    transition:transform .2s var(--ease),box-shadow .3s}
+  .hold:focus-visible{outline:2px solid #e2701e;outline-offset:5px}
+  .hold.on{transform:scale(.97);box-shadow:0 0 calc(var(--heat)*40px) rgba(255,120,30,calc(var(--heat)*.8)),0 6px 18px rgba(20,18,16,.25)}
+  .hold .fill{position:absolute;inset:0;border-radius:inherit;overflow:hidden;pointer-events:none}
+  .hold .fill::before{content:"";position:absolute;inset:0;transform-origin:left;transform:scaleX(var(--heat));
+    background:linear-gradient(90deg,#5a1d06,#c2410c 70%,#f59e0b)}
+  .hold span{position:relative}
+  .ring{position:absolute;inset:-6px;width:calc(100% + 12px);height:calc(100% + 12px);pointer-events:none;overflow:visible}
+  .ring rect{fill:none;stroke:#e8711d;stroke-width:2.5;stroke-linecap:round;stroke-dasharray:100 100;stroke-dashoffset:100;
+    filter:drop-shadow(0 0 4px rgba(255,130,30,.8));opacity:calc(var(--heat)*4)}
+
+  /* 화면 2 */
+  #s2{background:#050807;color:#eef3ef}
+  #sky{position:absolute;inset:0;width:100%;height:100%}
+  .aurora{position:absolute;left:-20%;right:-20%;bottom:-30%;height:75%;pointer-events:none;filter:blur(30px);
+    background:radial-gradient(40% 50% at 30% 70%,rgba(40,220,140,.35),transparent 70%),
+               radial-gradient(45% 45% at 70% 75%,rgba(20,170,150,.32),transparent 70%),
+               radial-gradient(60% 40% at 50% 95%,rgba(70,255,170,.28),transparent 70%);
+    animation:sway 14s ease-in-out infinite alternate}
+  @keyframes sway{to{transform:translateX(6%) scaleY(1.12)}}
+  #s2>header,#s2>main{position:relative}
+  #s2 .tag,#s2 .hint{color:#7e8b84}
+  #s2 .status{color:#8fa198}
+  #s2 .dot{background:#5de0a0;box-shadow:0 0 10px #5de0a0}
+  #s2 .body{color:#93a39b}
+  .note{width:min(320px,82vw);background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:14px;color:#eef3ef;
+    font:inherit;font-size:14px;padding:12px 16px;outline:none;transition:border-color .2s,background .2s}
+  .note::placeholder{color:#76857d}
+  .note:focus-visible{border-color:#5de0a0;background:rgba(255,255,255,.09)}
+  .quiet{border:0;border-radius:999px;background:#f3f6f4;color:#0b0f0d;font:inherit;font-weight:650;font-size:15px;padding:13px 26px;cursor:pointer;
+    transition:transform .2s var(--ease),box-shadow .3s}
+  .quiet:hover{box-shadow:0 0 30px rgba(93,224,160,.35)}
+  .quiet:active{transform:scale(.97)}
+  .quiet:focus-visible,.revive:focus-visible{outline:2px solid #5de0a0;outline-offset:4px}
+  .revive{background:none;border:0;color:#7e8b84;font:inherit;font-size:12.5px;text-decoration:underline;text-underline-offset:3px;cursor:pointer;padding:4px;border-radius:4px}
+  .revive:hover{color:#cfe0d7}
+  .toast{font-size:12px;color:#5de0a0;min-height:1.2em;transition:opacity .4s}
+
+  #fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:5}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+  @media (max-height:380px){main{gap:6px}.body{display:none}#s2 .note{padding:8px 12px}}
+  @media (prefers-reduced-motion:reduce){
+    .aurora{animation:none}.ch.char{animation:none}
+    .screen,.screen.off{transition-duration:.3s}
+  }
+</style>
+</head>
+<body>
+<section class="screen" id="s1" aria-labelledby="h1a">
+  <header>
+    <div><div class="mark">모닥불</div><div class="tag">쌓인 걸 태우고, 조용히 시작하기</div></div>
+    <div class="hint">길게 눌러 확인</div>
+  </header>
+  <main>
+    <div class="status"><i class="dot"></i><span><b id="cnt">2,318</b>통 안 읽은 메일 · 뉴스레터 41개</span></div>
+    <h1 id="h1a" class="burn">받은편지함을<br>파산 선언할까요?</h1>
+    <p class="body burn">답장 못 한 미안함까지 전부 장작으로 쓸게요. 중요한 건 이미 기억하고 있을 거예요.</p>
+    <button class="hold" id="hold" aria-describedby="hh">
+      <span class="fill"></span>
+      <svg class="ring" aria-hidden="true" preserveAspectRatio="none"><rect x="1.5" y="1.5" rx="0" pathLength="100"/></svg>
+      <span>길게 눌러 모두 태우기</span>
+    </button>
+    <p class="small" id="hh">누르고 계세요. 손을 떼면 취소돼요.</p>
+  </main>
+</section>
+
+<section class="screen off" id="s2" aria-labelledby="h1b">
+  <canvas id="sky" aria-hidden="true"></canvas>
+  <div class="aurora" aria-hidden="true"></div>
+  <header>
+    <div><div class="mark">모닥불 — 그 후</div><div class="tag">재가 식는 동안 잠시 쉬어요</div></div>
+    <div class="hint">안 읽은 메일 0</div>
+  </header>
+  <main>
+    <div class="status"><i class="dot"></i><span>0통</span></div>
+    <h1 id="h1b" tabindex="-1" style="outline:none">받은편지함 제로.</h1>
+    <p class="body">지금 당신을 찾는 건 아무것도 없어요.</p>
+    <label class="sr" for="note">부재중 메시지</label>
+    <input class="note" id="note" type="text" placeholder="부재중 메시지 남기기" autocomplete="off">
+    <button class="quiet" id="quiet">조용히 지내기</button>
+    <p class="toast" id="toast" aria-live="polite"></p>
+    <button class="revive" id="revive">2,318통 되살리기</button>
+  </main>
+</section>
+
+<canvas id="fx" aria-hidden="true"></canvas>
+<p class="sr" aria-live="polite" id="live"></p>
+
+<script>
+(()=>{
+  const TOTAL=2318, HOLD=2200;
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const root=document.documentElement, s1=document.getElementById('s1'), s2=document.getElementById('s2');
+  const btn=document.getElementById('hold'), cnt=document.getElementById('cnt'), live=document.getElementById('live');
+  const ringRect=btn.querySelector('.ring rect');
+  const fx=document.getElementById('fx'), g=fx.getContext('2d');
+  const sky=document.getElementById('sky'), sg=sky.getContext('2d');
+  let W=0,H=0,dpr=1;
+
+  // 글자를 한 자씩 쪼개 그을림 효과용 span으로
+  const chars=[];
+  document.querySelectorAll('.burn').forEach(el=>{
+    const walk=n=>{
+      [...n.childNodes].forEach(c=>{
+        if(c.nodeType===3){
+          const f=document.createDocumentFragment();
+          [...c.textContent].forEach(t=>{
+            if(t===' '){f.appendChild(document.createTextNode(' '));return}
+            const s=document.createElement('span');s.className='ch';s.textContent=t;s.dataset.t=(.15+Math.random()*.8).toFixed(3);
+            f.appendChild(s);chars.push(s);
+          });
+          c.replaceWith(f);
+        }else if(c.nodeType===1&&c.tagName!=='BR')walk(c);
+      });
+    };
+    walk(el);
+  });
+
+  function resize(){
+    dpr=Math.min(2,window.devicePixelRatio||1);W=innerWidth;H=innerHeight;
+    [fx,sky].forEach(c=>{c.width=W*dpr;c.height=H*dpr});
+    g.setTransform(dpr,0,0,dpr,0,0);sg.setTransform(dpr,0,0,dpr,0,0);
+    const r=btn.getBoundingClientRect();
+    ringRect.setAttribute('width',r.width+9);ringRect.setAttribute('height',r.height+9);ringRect.setAttribute('rx',(r.height+9)/2);
+    btn.querySelector('.ring').setAttribute('viewBox',`0 0 ${r.width+12} ${r.height+12}`);
+    makeStars();
+  }
+
+  // 별
+  let stars=[];
+  function makeStars(){
+    const n=Math.round(W*H/5200);stars=[];
+    for(let i=0;i<n;i++)stars.push({x:Math.random()*W,y:Math.random()*H*.9,r:Math.random()*1.2+.2,a:Math.random()*.7+.2,tw:Math.random()*6.28,v:.02+Math.random()*.06});
+  }
+  function drawSky(t){
+    sg.clearRect(0,0,W,H);
+    for(const s of stars){
+      if(!reduce){s.x+=s.v;if(s.x>W+2)s.x=-2}
+      const a=s.a*(.65+.35*Math.sin(t/900+s.tw));
+      sg.fillStyle=`rgba(225,245,235,${a})`;sg.beginPath();sg.arc(s.x,s.y,s.r,0,6.283);sg.fill();
+    }
+  }
+
+  // 불티 파티클
+  const P=[];
+  function btnCenter(){const r=btn.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2,w:r.width,h:r.height}}
+  function ember(x,y,power){
+    P.push({x,y,vx:(Math.random()-.5)*(1+power*3),vy:-(1+Math.random()*2.5)*(1+power),life:1,decay:.008+Math.random()*.018,
+      r:1+Math.random()*2.4*(1+power),hue:20+Math.random()*30,kind:'fire'});
+  }
+  function burst(){
+    const c=btnCenter();
+    const n=reduce?0:260;
+    for(let i=0;i<n;i++){
+      const a=Math.random()*6.283,sp=2+Math.random()*9;
+      P.push({x:c.x+(Math.random()-.5)*c.w,y:c.y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-4,life:1,decay:.008+Math.random()*.015,
+        r:1.5+Math.random()*4,hue:15+Math.random()*40,kind:'fire'});
+    }
+  }
+  function ashGather(){
+    const c=btnCenter();
+    if(reduce)return;
+    for(let i=0;i<220;i++){
+      const x=Math.random()*W,y=Math.random()*H;
+      P.push({x,y,tx:c.x+(Math.random()-.5)*c.w*1.4,ty:c.y+(Math.random()-.5)*c.h*2.5-H*.15*Math.random(),life:1,decay:.012+Math.random()*.008,
+        r:1+Math.random()*2.2,kind:'ash',k:.035+Math.random()*.04});
+    }
+  }
+  function drawFx(){
+    g.clearRect(0,0,W,H);
+    g.globalCompositeOperation='lighter';
+    for(let i=P.length-1;i>=0;i--){
+      const p=P[i];
+      if(p.kind==='fire'){
+        p.x+=p.vx+Math.sin(p.y/22)*.4;p.y+=p.vy;p.vy-=.03;p.vx*=.985;p.life-=p.decay;
+        const l=Math.max(0,p.life);
+        g.fillStyle=`hsla(${p.hue+l*10},100%,${45+l*25}%,${l})`;
+        g.beginPath();g.arc(p.x,p.y,p.r*(.4+l*.6),0,6.283);g.fill();
+      }else{
+        g.globalCompositeOperation='source-over';
+        p.x+=(p.tx-p.x)*p.k;p.y+=(p.ty-p.y)*p.k;p.life-=p.decay;
+        g.fillStyle=`rgba(160,170,165,${Math.max(0,p.life)*.8})`;
+        g.fillRect(p.x,p.y,p.r,p.r);
+        g.globalCompositeOperation='lighter';
+      }
+      if(p.life<=0||p.y<-40)P.splice(i,1);
+    }
+    g.globalCompositeOperation='source-over';
+  }
+
+  // 길게 누르기 상태
+  let holding=false,p=0,last=performance.now(),done=false,onNight=false;
+  const fmt=n=>n.toLocaleString('ko-KR');
+  function start(e){
+    if(done||onNight)return;
+    if(e&&e.type==='pointerdown'){if(e.button!==0)return;btn.setPointerCapture?.(e.pointerId)}
+    holding=true;btn.classList.add('on');
+  }
+  function stop(){
+    if(!holding)return;holding=false;btn.classList.remove('on');
+    if(!done&&p>.05)live.textContent='취소됐어요. 불이 식고 있어요.';
+  }
+  btn.addEventListener('pointerdown',start);
+  ['pointerup','pointercancel','lostpointercapture'].forEach(ev=>btn.addEventListener(ev,stop));
+  btn.addEventListener('keydown',e=>{if((e.key===' '||e.key==='Enter')){e.preventDefault();if(!e.repeat)start()}});
+  btn.addEventListener('keyup',e=>{if(e.key===' '||e.key==='Enter')stop()});
+  btn.addEventListener('blur',stop);
+  btn.addEventListener('contextmenu',e=>e.preventDefault());
+  btn.addEventListener('click',e=>e.preventDefault());
+
+  function apply(){
+    root.style.setProperty('--heat',p.toFixed(4));
+    ringRect.style.strokeDashoffset=(100-p*100).toFixed(2);
+    cnt.textContent=fmt(Math.round(TOTAL*(1-p*p*.4-p*.6)));
+    for(const s of chars){
+      const t=+s.dataset.t;
+      s.classList.toggle('char',p>t);
+      s.classList.toggle('warm',p>t*.55&&p<=t);
+    }
+  }
+  function complete(){
+    done=true;holding=false;btn.classList.remove('on');p=1;apply();cnt.textContent='0';
+    burst();
+    live.textContent='모두 태웠어요. 받은편지함이 비었어요.';
+    setTimeout(()=>{
+      s1.classList.add('off');s2.classList.remove('off');onNight=true;
+      setTimeout(()=>document.getElementById('h1b').focus({preventScroll:true}),400);
+    },reduce?150:650);
+  }
+  function revive(){
+    if(!onNight)return;
+    onNight=false;
+    s2.classList.add('off');s1.classList.remove('off');
+    p=1;apply();
+    ashGather();
+    live.textContent='2,318통이 재에서 다시 모였어요.';
+    setTimeout(()=>{done=false;btn.focus({preventScroll:true})},reduce?100:500);
+  }
+  document.getElementById('revive').addEventListener('click',revive);
+  const toast=document.getElementById('toast');
+  document.getElementById('quiet').addEventListener('click',()=>{
+    const v=document.getElementById('note').value.trim();
+    toast.textContent=v?`“${v.slice(0,40)}” — 자동 응답으로 걸어 둘게요.`:'알림을 모두 껐어요. 좋은 밤 보내세요.';
+  });
+  document.getElementById('note').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('quiet').click()});
+
+  function loop(t){
+    const dt=Math.min(50,t-last);last=t;
+    if(!done){
+      if(holding){p=Math.min(1,p+dt/HOLD);if(p>=1)complete()}
+      else if(p>0){p=Math.max(0,p-dt/(HOLD*.45))}
+      apply();
+      if(holding&&!reduce){
+        const c=btnCenter(),n=1+Math.floor(p*6);
+        for(let i=0;i<n;i++)ember(c.x+(Math.random()-.5)*c.w*.9,c.y-c.h*.3,p);
+      }
+    }
+    if(onNight)drawSky(t);
+    drawFx();
+    requestAnimationFrame(loop);
+  }
+  addEventListener('resize',resize);
+  resize();apply();requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

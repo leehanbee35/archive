@@ -1,0 +1,243 @@
+<!doctype html>
+<!-- meta: {"name":"잉크 방울 버튼","cat":"버튼","desc":"검은 잉크로 된 버튼이 마우스를 따라 방울을 흘리고, 누르면 잉크가 늘어나 튀어요","added":"2026-11-27"} -->
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<title>잉크 방울 버튼</title>
+<style>
+  :root{--paper:#ecebe7;--ink:#111}
+  *{box-sizing:border-box;margin:0}
+  html,body{height:100%;overflow:hidden}
+  body{background:radial-gradient(80% 70% at 50% 40%,#f4f3ef,var(--paper));
+    font-family:"Pretendard Variable",Pretendard,-apple-system,"Malgun Gothic",sans-serif;color:var(--ink)}
+  canvas{position:fixed;inset:0;width:100%;height:100%;pointer-events:none}
+  #ink{filter:url(#goo)}
+  #shine{z-index:3}
+
+  .btn{position:fixed;left:50%;top:46%;width:180px;height:56px;margin:-28px 0 0 -90px;z-index:2;
+    border:0;border-radius:999px;background:transparent;color:#fff;cursor:grab;
+    font:inherit;font-size:17px;font-weight:600;letter-spacing:-.02em;
+    touch-action:none;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;will-change:transform}
+  .btn:active{cursor:grabbing}
+  .btn:focus-visible{outline:2px solid var(--ink);outline-offset:7px}
+  /* 젖은 광택 */
+  .btn::before{content:"";position:absolute;left:20px;right:40px;top:6px;height:16px;border-radius:999px;
+    background:linear-gradient(180deg,rgba(255,255,255,.42),rgba(255,255,255,0));pointer-events:none}
+  .btn::after{content:"";position:absolute;left:34px;right:34px;bottom:5px;height:7px;border-radius:999px;
+    background:linear-gradient(0deg,rgba(255,255,255,.13),rgba(255,255,255,0));pointer-events:none}
+  .spec{position:absolute;left:22px;top:9px;width:20px;height:7px;border-radius:50%;background:rgba(255,255,255,.85);
+    filter:blur(.6px);transform:rotate(-8deg);pointer-events:none}
+  .t{position:relative;display:inline-block;transition:opacity .2s,transform .3s cubic-bezier(.3,1.5,.5,1)}
+  .t.swap{opacity:0;transform:translateY(6px) scale(.9)}
+
+  .hint{position:fixed;left:0;right:0;bottom:12px;text-align:center;font-size:13px;color:#8d8b84;letter-spacing:-.01em;pointer-events:none}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+</style>
+</head>
+<body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <filter id="goo" x="-10%" y="-10%" width="120%" height="120%" color-interpolation-filters="sRGB">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="4.5" result="b"/>
+        <feColorMatrix in="b" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -7"/>
+      </filter>
+    </defs>
+  </svg>
+  <canvas id="ink" aria-hidden="true"></canvas>
+  <canvas id="shine" aria-hidden="true"></canvas>
+  <button class="btn" id="btn"><span class="spec"></span><span class="t" id="lbl">연락하기</span></button>
+  <p class="hint">가까이 가 보거나, 눌러서 끌어 보세요</p>
+  <span class="sr" id="status" aria-live="polite"></span>
+<script>
+  const ink = document.getElementById('ink'), shine = document.getElementById('shine');
+  const btn = document.getElementById('btn'), lbl = document.getElementById('lbl'), status = document.getElementById('status');
+  const ic = ink.getContext('2d'), sc = shine.getContext('2d');
+  const RM = matchMedia('(prefers-reduced-motion: reduce)');
+  const BW = 180, BH = 56, R = BH / 2, G = 1500, INK = '#111';
+  let W, H, cx, cy, floor;
+
+  function size() {
+    const dpr = Math.min(2, devicePixelRatio || 1);
+    W = innerWidth; H = innerHeight;
+    for (const c of [ink, shine]) { c.width = W * dpr; c.height = H * dpr; }
+    ic.setTransform(dpr, 0, 0, dpr, 0, 0); sc.setTransform(dpr, 0, 0, dpr, 0, 0);
+    cx = W / 2; cy = H * .46; floor = Math.min(H - 38, cy + 170);
+  }
+  addEventListener('resize', size); size();
+
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+  // 포인터
+  const ptr = { x: -1e4, y: -1e4, in: false };
+  addEventListener('pointermove', e => { ptr.x = e.clientX; ptr.y = e.clientY; ptr.in = true; });
+  document.documentElement.addEventListener('pointerleave', () => { ptr.in = false; });
+
+  // 방울
+  const drops = [];
+  function drop(x, y, vx, vy, r, kind = 'drop') {
+    if (drops.length > 170) drops.shift();
+    drops.push({ x, y, vx, vy, r, life: 1, landed: false, kind });
+  }
+
+  // 상태: 젤리 흔들림(j), 누름(sq), 꼬리 끝(tip)
+  let t = 0, nearK = 0, spawnT = 0, sq = 0, sqV = 0;
+  const jig = { v: 0, vel: 0 };
+  const tip = { x: 0, y: 0, vx: 0, vy: 0 }, grab = { x: 0, y: 0 }, aim = { x: 0, y: 0 };
+  let dragging = false, broke = false, moved = 0, sx0 = 0, sy0 = 0;
+
+  btn.addEventListener('pointerdown', e => {
+    dragging = true; broke = false; moved = 0; sx0 = e.clientX; sy0 = e.clientY;
+    try { btn.setPointerCapture(e.pointerId); } catch (_) {}
+    grab.x = clamp(e.clientX - cx, -BW / 2 + R, BW / 2 - R); grab.y = 0;
+    aim.x = e.clientX - cx - grab.x; aim.y = e.clientY - cy;
+    tip.x = aim.x; tip.y = aim.y; tip.vx = tip.vy = 0;
+  });
+  btn.addEventListener('pointermove', e => {
+    if (!dragging) return;
+    aim.x = e.clientX - cx - grab.x; aim.y = e.clientY - cy;
+    moved = Math.max(moved, Math.hypot(e.clientX - sx0, e.clientY - sy0));
+  });
+  function release() {
+    if (!dragging) return;
+    dragging = false;
+    shed(Math.hypot(tip.x, tip.y));
+  }
+  btn.addEventListener('pointerup', release);
+  btn.addEventListener('pointercancel', release);
+  btn.addEventListener('lostpointercapture', release);
+
+  // 꼬리를 따라 방울 떨구기
+  function shed(len) {
+    if (len < 40 || RM.matches) return;
+    const n = Math.min(7, Math.round(len / 40)), nx = tip.x / len, ny = tip.y / len;
+    for (let i = 0; i < n; i++) {
+      const p = rand(.35, 1);
+      drop(cx + grab.x + tip.x * p, cy + tip.y * p, nx * rand(30, 160) + rand(-50, 50), ny * rand(30, 140) - rand(40, 140), rand(3, 7));
+    }
+    jig.vel += .9;
+  }
+
+  btn.addEventListener('click', () => {
+    const wasDrag = moved > 10; moved = 0;
+    if (wasDrag) return;
+    lbl.classList.add('swap');
+    setTimeout(() => { lbl.textContent = '반가워요!'; lbl.classList.remove('swap'); }, 160);
+    setTimeout(() => { lbl.classList.add('swap'); setTimeout(() => { lbl.textContent = '연락하기'; lbl.classList.remove('swap'); }, 160); }, 1700);
+    status.textContent = '연락하기를 눌렀어요';
+    jig.vel -= 1.2;
+    if (RM.matches) return;
+    for (let i = 0; i < 9; i++) {
+      const a = -Math.PI / 2 + rand(-1.1, 1.1);
+      drop(cx + Math.cos(a) * BW * .35, cy + Math.sin(a) * R * .8, Math.cos(a) * rand(90, 260), Math.sin(a) * rand(240, 420), rand(3, 7.5));
+    }
+  });
+
+  function circle(ctx, x, y, r) { ctx.beginPath(); ctx.arc(x, y, Math.max(0, r), 0, Math.PI * 2); ctx.fill(); }
+  function ellipse(ctx, x, y, rx, ry) { ctx.beginPath(); ctx.ellipse(x, y, Math.max(0, rx), Math.max(0, ry), 0, 0, Math.PI * 2); ctx.fill(); }
+  function pill(x, y, w, h) {
+    const r = h / 2, l = x - w / 2 + r, rr = x + w / 2 - r;
+    ic.beginPath(); ic.arc(l, y, r, Math.PI / 2, Math.PI * 1.5); ic.arc(rr, y, r, -Math.PI / 2, Math.PI / 2); ic.closePath(); ic.fill();
+  }
+
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(.033, (now - last) / 1000); last = now; t += dt;
+    const rm = RM.matches;
+
+    // 꼬리: 끄는 중엔 포인터를 따라가고, 놓으면 탄성 있게 되돌아감
+    if (dragging) {
+      tip.x += (aim.x - tip.x) * Math.min(1, dt * 22); tip.y += (aim.y - tip.y) * Math.min(1, dt * 22);
+      tip.vx = tip.vy = 0;
+      const len = Math.hypot(tip.x, tip.y);
+      if (len > 280 && !broke && !rm) { // 너무 늘이면 끝이 떨어져 나감
+        broke = true;
+        drop(cx + grab.x + tip.x, cy + tip.y, tip.x * .4, tip.y * .4 - 60, 11);
+        for (let i = 0; i < 3; i++) drop(cx + grab.x + tip.x * .8, cy + tip.y * .8, rand(-80, 80), rand(-160, -40), rand(2.5, 4.5), 'spl');
+        dragging = false; tip.x *= .5; tip.y *= .5; jig.vel += 1.2;
+      }
+    } else {
+      const k = 260, c = rm ? 2 * Math.sqrt(k) : 9;
+      tip.vx += (-k * tip.x - c * tip.vx) * dt; tip.vy += (-k * tip.y - c * tip.vy) * dt;
+      tip.x += tip.vx * dt; tip.y += tip.vy * dt;
+    }
+    sqV += ((dragging ? .07 : 0) - sq) * 320 * dt - sqV * 18 * dt; sq += sqV * dt;
+    jig.vel += (-300 * jig.v - 10 * jig.vel) * dt; jig.v = clamp(jig.v + jig.vel * dt, -.12, .12);
+
+    const wob = rm ? 0 : .011 * Math.sin(t * 2.1) * (1 - nearK * .5);
+    const wob2 = rm ? 0 : .016 * Math.sin(t * 2.1 + 1.9);
+    const sx = 1 + wob + jig.v + sq * .5, sy = 1 + wob2 - jig.v * .8 - sq;
+    const ox = tip.x * .05, oy = tip.y * .05;
+    btn.style.transform = `translate(${ox}px,${oy}px) scale(${sx},${sy})`;
+
+    // 가까이 오면 가장자리가 부풀어 방울이 떨어져 나감
+    const segX = clamp(ptr.x, cx - BW / 2 + R, cx + BW / 2 - R);
+    let dx = ptr.x - segX, dy = ptr.y - cy; const dist = Math.hypot(dx, dy) || 1; dx /= dist; dy /= dist;
+    const gap = dist - R;
+    const k = ptr.in && !dragging && !rm && gap > 0 ? clamp(1 - gap / 150, 0, 1) : 0;
+    nearK += (k - nearK) * Math.min(1, dt * 5);
+    spawnT -= dt;
+    if (nearK > .25 && spawnT <= 0 && Math.hypot(tip.x, tip.y) < 20) {
+      const v = 60 + 170 * nearK;
+      drop(segX + dx * (R + 4 + nearK * 10), cy + dy * (R + 4 + nearK * 10), dx * v + rand(-30, 30), dy * v - 30, rand(3.5, 8));
+      spawnT = (.55 - .42 * nearK) * rand(.7, 1.3);
+      jig.vel += .25;
+    }
+
+    // 방울 물리
+    for (let i = drops.length - 1; i >= 0; i--) {
+      const d = drops[i];
+      if (!d.landed) {
+        d.vy += G * dt; d.vx *= 1 - dt * .3; d.x += d.vx * dt; d.y += d.vy * dt;
+        if (d.y >= floor) {
+          d.y = floor; d.landed = true;
+          if (d.kind === 'drop' && d.vy > 220) {
+            const n = 2 + (Math.random() * 3 | 0), f = Math.min(1, d.vy / 900);
+            for (let j = 0; j < n; j++) drop(d.x + rand(-4, 4), floor - 3, rand(-130, 130), -rand(120, 300) * f, rand(1.4, 3), 'spl');
+          }
+          d.vx = d.vy = 0;
+        }
+      } else d.life -= dt * (d.kind === 'spl' ? 1.4 : .4);
+      if (d.life <= 0 || d.x < -50 || d.x > W + 50) drops.splice(i, 1);
+    }
+
+    // 그리기 (잉크 캔버스는 goo 필터로 서로 붙는다)
+    ic.clearRect(0, 0, W, H); sc.clearRect(0, 0, W, H);
+    ic.fillStyle = INK;
+    const px = cx + ox, py = cy + oy;
+    pill(px, py, BW * sx, BH * sy);
+    if (nearK > .02) circle(ic, segX + dx * (R - 6 + nearK * 12), cy + dy * (R - 6 + nearK * 12), 9 + 6 * nearK);
+
+    const len = Math.hypot(tip.x, tip.y);
+    if (len > 3) {
+      const ax = px + grab.x, ay = py, n = Math.max(4, Math.ceil(len / 8)), st = Math.min(1, len / 260);
+      for (let i = 0; i <= n; i++) {
+        const p = i / n;
+        const r = (R * .82 + (15 - R * .82) * p) * (1 - .45 * st * Math.sin(Math.PI * p)) + (i === n ? 3 : 0);
+        circle(ic, ax + tip.x * p, ay + tip.y * p, r);
+      }
+      if (len > 40) {
+        sc.fillStyle = 'rgba(255,255,255,.55)';
+        ellipse(sc, ax + tip.x - 6, ay + tip.y - 7, 4.5, 2.6);
+      }
+    }
+
+    for (const d of drops) {
+      const life = Math.sqrt(Math.max(0, d.life));
+      const r = (d.r + 3.5) * life;
+      if (!d.landed) {
+        const s = Math.min(.7, Math.abs(d.vy) / 1400);
+        ellipse(ic, d.x, d.y, r * (1 - s * .25), r * (1 + s));
+        if (r > 7.5) { sc.fillStyle = `rgba(255,255,255,${.55 * life})`; circle(sc, d.x - r * .28, d.y - r * .35, r * .2); }
+      } else {
+        ellipse(ic, d.x, d.y + 2, r * 1.7, r * .62);
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+</script>
+</body>
+</html>

@@ -1,0 +1,196 @@
+<!doctype html>
+<!-- meta: {"name":"두루마리 버튼","cat":"버튼","desc":"작은 두루마리 버튼을 누르면 양피지가 위아래로 펼쳐지며 글이 한 줄씩 써져요","added":"2026-11-27"} -->
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<title>두루마리 버튼</title>
+<style>
+  :root{--bg:#eee7dc;--ink:#3b2e22;--red:#a8321f;--W:440px;--H:520px;--rod:26px;
+    --ease:cubic-bezier(.65,0,.25,1);--serif:"Nanum Myeongjo","Noto Serif KR","Batang",Georgia,serif}
+  *{box-sizing:border-box;margin:0}
+  html,body{height:100%;overflow:hidden}
+  body{background:radial-gradient(80% 70% at 50% 45%,#f4eee5,var(--bg) 70%,#e4dccd);color:var(--ink);
+    font-family:"Pretendard Variable",Pretendard,-apple-system,"Malgun Gothic",sans-serif;-webkit-font-smoothing:antialiased;
+    display:flex;flex-direction:column}
+  .stage{flex:1;display:flex;align-items:center;justify-content:center;perspective:900px;min-height:0}
+  footer{flex:none;text-align:center;font-size:12px;color:#9a8c78;padding:0 16px clamp(10px,2.6vh,24px);transition:opacity .4s}
+  body.is-open footer{opacity:.0}
+
+  /* 두루마리 본체 */
+  .scroll{position:relative;width:150px;height:40px;
+    transition:width .5s var(--ease),height .75s var(--ease),transform .5s var(--ease);
+    filter:drop-shadow(0 10px 14px rgba(70,50,30,.18)) drop-shadow(0 2px 3px rgba(70,50,30,.2))}
+  .scroll:not(.lift):hover{transform:translateY(-2px)}
+  .scroll.lift{width:var(--W);animation:stand .55s var(--ease)}
+  .scroll.open{height:calc(var(--H) + var(--rod)*2)}
+  @keyframes stand{0%{transform:rotateX(0) rotate(0)}35%{transform:rotateX(62deg) rotate(-6deg) translateY(-6px)}100%{transform:none}}
+
+  .rod{position:absolute;left:0;right:0;height:40px;z-index:2;border-radius:6px;transition:height .5s var(--ease),top .75s var(--ease),bottom .75s var(--ease);
+    background:
+      repeating-linear-gradient(90deg,rgba(120,90,50,.05) 0 3px,transparent 3px 9px),
+      linear-gradient(180deg,#b59d76 0%,#e9dcc2 22%,#f8f0de 38%,#e6d6b8 62%,#c7ae86 84%,#9b8160 100%)}
+  .rod.top{top:0}.rod.bot{bottom:0;opacity:0;transition:opacity .2s,height .5s var(--ease)}
+  .scroll.lift .rod{height:var(--rod)}
+  .scroll.lift .rod.bot{opacity:1}
+  /* 놋쇠 손잡이 */
+  .rod::before,.rod::after{content:"";position:absolute;top:-5px;bottom:-5px;width:13px;border-radius:5px;
+    background:linear-gradient(180deg,#6d4f1c,#d9b25c 28%,#fff0b8 42%,#c9962f 62%,#7a5617);
+    box-shadow:inset 0 0 0 1px rgba(80,50,10,.35),0 2px 3px rgba(60,40,10,.25)}
+  .rod::before{left:-11px}.rod::after{right:-11px}
+  .rod i{position:absolute;top:50%;width:8px;height:8px;margin-top:-4px;border-radius:50%;
+    background:radial-gradient(circle at 35% 35%,#fff3c4,#c4912c 60%,#6d4c15)}
+  .rod i:first-child{left:-21px}.rod i:last-child{right:-21px}
+
+  .open-btn{position:absolute;inset:-6px -24px;z-index:3;border:0;background:transparent;cursor:pointer;border-radius:10px;
+    font:inherit;font-size:13px;font-weight:650;letter-spacing:.42em;text-indent:.42em;color:#6b4f2e;
+    text-shadow:0 1px 0 rgba(255,250,235,.8);transition:opacity .25s}
+  .open-btn:focus-visible{outline:2px solid var(--red);outline-offset:3px}
+  .scroll.lift .open-btn{opacity:0;pointer-events:none}
+
+  /* 양피지 */
+  .sheet{position:absolute;left:6px;right:6px;top:calc(var(--rod) - 3px);bottom:calc(var(--rod) - 3px);z-index:1;overflow:hidden;
+    background:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .35 0 0 0 0 .25 0 0 0 0 .12 0 0 0 .22 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+      radial-gradient(60% 40% at 25% 30%,rgba(190,150,90,.16),transparent 70%),
+      radial-gradient(50% 35% at 80% 75%,rgba(170,120,70,.14),transparent 70%),
+      linear-gradient(90deg,rgba(140,100,55,.22),transparent 9%,transparent 91%,rgba(140,100,55,.22)),
+      #f3e8d3}
+  .sheet::before,.sheet::after{content:"";position:absolute;left:0;right:0;height:26px;z-index:2;pointer-events:none}
+  .sheet::before{top:0;background:linear-gradient(180deg,rgba(90,62,30,.38),rgba(90,62,30,.08) 45%,transparent)}
+  .sheet::after{bottom:0;background:linear-gradient(0deg,rgba(90,62,30,.38),rgba(90,62,30,.08) 45%,transparent)}
+  .page{height:100%;overflow-y:auto;padding:clamp(16px,4vh,36px) clamp(18px,5%,40px);cursor:pointer;scrollbar-width:thin;scrollbar-color:#c5ad85 transparent;
+    font-family:var(--serif);opacity:0;transition:opacity .3s}
+  .scroll.open .page{opacity:1;transition-delay:.35s}
+  .page:focus-visible{outline:2px solid var(--red);outline-offset:-6px}
+  .cap{font-family:"Pretendard Variable",Pretendard,sans-serif;font-size:11.5px;letter-spacing:.3em;color:var(--red);font-weight:650;margin-bottom:6px}
+  h1{font-family:var(--serif);font-size:clamp(20px,min(5.2vw,6vh),30px);font-weight:800;letter-spacing:-.02em;line-height:1.25;margin-bottom:clamp(10px,2.4vh,20px)}
+  .page p{font-size:clamp(13.5px,min(3.4vw,2.6vh),16px);line-height:1.85;margin-bottom:1em;word-break:keep-all;color:#45362a}
+  .drop{float:left;font-size:3.2em;line-height:.9;color:var(--red);font-weight:800;margin:.08em .12em 0 0;font-family:var(--serif)}
+  .sign{font-style:italic;text-align:right;color:#6b5641;margin-top:1.4em}
+  hr{border:0;height:1px;margin:0 auto 1.1em;width:40%;background:linear-gradient(90deg,transparent,rgba(130,90,50,.45),transparent)}
+  .c{opacity:0;filter:blur(2px);transition:opacity .4s ease,filter .4s ease}
+  .c.on{opacity:1;filter:none}
+
+  .roll-btn{position:absolute;right:18px;top:calc(var(--rod) + 10px);z-index:3;border:1px solid rgba(107,79,46,.35);
+    background:rgba(255,250,240,.6);color:#6b4f2e;font:inherit;font-size:12px;font-weight:600;letter-spacing:.2em;padding:6px 12px 6px 14px;border-radius:999px;cursor:pointer;
+    opacity:0;pointer-events:none;transition:opacity .3s}
+  .scroll.open .roll-btn{opacity:1;pointer-events:auto;transition-delay:.5s}
+  .roll-btn:hover{background:#fffaf0}
+  .roll-btn:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  @media (max-height:420px){:root{--rod:18px}}
+  @media (prefers-reduced-motion:reduce){
+    .scroll,.rod,.scroll.lift{transition-duration:.01s!important;animation:none!important}
+    .c{transition:none}
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="scroll" id="scroll">
+    <div class="rod top" aria-hidden="true"><i></i><i></i></div>
+    <div class="sheet" id="sheet" aria-hidden="true">
+      <article class="page" id="page" tabindex="-1" aria-label="소소한 즐거움의 헌장. 누르면 다시 말려요">
+        <div class="cap w">제1장</div>
+        <h1 class="w">소소한 즐거움의 헌장</h1>
+        <hr>
+        <p class="w"><span class="drop">작</span>은 기계는 크게 떠들지 않는다. 딸깍 한 번, 반 바퀴 도는 톱니 하나로 제 할 일을 다 해낸다. 우리는 그런 기계를 아끼기로 한다. 누르면 꼭 한 번만 대답하는 버튼, 열 때마다 살짝 버티는 서랍, 다 끝났다고 조그맣게 깜박이는 불빛을.</p>
+        <p class="w">그러므로 이 헌장은 밝혀 둔다. 쓸모만큼 기쁨도 설계의 몫이며, 아무도 만지지 않을 모서리까지 둥글게 다듬을 것. 기다림에는 작은 움직임을, 실수에는 너그러운 되돌리기를 마련해 둘 것.</p>
+        <p class="sign w">— 작은 것들의 모임, 첫 번째 저녁에</p>
+      </article>
+    </div>
+    <div class="rod bot" aria-hidden="true"><i></i><i></i></div>
+    <button class="open-btn" id="openBtn" aria-expanded="false" aria-controls="sheet">펼치기</button>
+    <button class="roll-btn" id="rollBtn" tabindex="-1">말기 ↑</button>
+  </div>
+</div>
+<footer>버튼을 눌러 헌장을 펼쳐 보세요</footer>
+<p class="sr" aria-live="polite" id="live"></p>
+
+<script>
+(()=>{
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const $=id=>document.getElementById(id);
+  const sc=$('scroll'),sheet=$('sheet'),page=$('page'),openBtn=$('openBtn'),rollBtn=$('rollBtn'),live=$('live');
+  const root=document.documentElement;
+
+  // 글자를 한 자씩 감싸기 (쓰는 순서대로)
+  const chars=[];
+  page.querySelectorAll('.w').forEach(el=>{
+    const walk=n=>{[...n.childNodes].forEach(c=>{
+      if(c.nodeType===3){
+        const f=document.createDocumentFragment();
+        [...c.textContent].forEach(t=>{
+          if(/\s/.test(t)){f.appendChild(document.createTextNode(t));return}
+          const s=document.createElement('span');s.className='c';s.textContent=t;f.appendChild(s);chars.push(s);
+        });
+        c.replaceWith(f);
+      }else if(c.nodeType===1){
+        if(c.classList.contains('drop')){c.classList.add('c');chars.push(c)}else walk(c);
+      }
+    })};
+    walk(el);
+  });
+
+  function size(){
+    const rod=parseFloat(getComputedStyle(root).getPropertyValue('--rod'))||26;
+    const w=Math.min(440,innerWidth-64);
+    const h=Math.max(110,Math.min(600,innerHeight-rod*2-(innerHeight<420?28:96)));
+    root.style.setProperty('--W',w+'px');root.style.setProperty('--H',h+'px');
+  }
+  addEventListener('resize',size);size();
+
+  let state='closed',timers=[],writer=0;
+  const later=(fn,ms)=>timers.push(setTimeout(fn,reduce?0:ms));
+  const clear=()=>{timers.forEach(clearTimeout);timers=[];clearInterval(writer)};
+
+  function write(){
+    let i=0;
+    if(reduce){chars.forEach(c=>c.classList.add('on'));return}
+    writer=setInterval(()=>{
+      // 한 번에 1~2자씩: 줄 단위로 써 내려가는 느낌
+      for(let k=0;k<2&&i<chars.length;k++,i++){
+        const c=chars[i];c.classList.add('on');
+        const top=c.offsetTop,ph=page.clientHeight;
+        if(top+28>page.scrollTop+ph&&!userScrolled)page.scrollTop=top-ph+48;
+      }
+      if(i>=chars.length){clearInterval(writer);live.textContent='헌장을 다 썼어요.'}
+    },34);
+  }
+  let userScrolled=false;
+  page.addEventListener('wheel',()=>userScrolled=true,{passive:true});
+  page.addEventListener('touchmove',()=>userScrolled=true,{passive:true});
+
+  function open(){
+    if(state!=='closed')return;
+    state='opening';clear();userScrolled=false;page.scrollTop=0;
+    chars.forEach(c=>c.classList.remove('on'));
+    openBtn.setAttribute('aria-expanded','true');sheet.setAttribute('aria-hidden','false');
+    document.body.classList.add('is-open');
+    sc.classList.add('lift');
+    later(()=>sc.classList.add('open'),500);
+    later(()=>{state='open';rollBtn.tabIndex=0;page.focus({preventScroll:true});live.textContent='헌장이 펼쳐졌어요.';write()},1150);
+  }
+  function close(){
+    if(state==='closed'||state==='closing')return;
+    state='closing';clear();
+    chars.forEach(c=>c.classList.remove('on'));
+    rollBtn.tabIndex=-1;
+    sc.classList.remove('open');
+    later(()=>sc.classList.remove('lift'),700);
+    later(()=>{
+      state='closed';sheet.setAttribute('aria-hidden','true');openBtn.setAttribute('aria-expanded','false');
+      document.body.classList.remove('is-open');openBtn.focus({preventScroll:true});live.textContent='다시 말았어요.';
+    },1150);
+  }
+  openBtn.addEventListener('click',open);
+  rollBtn.addEventListener('click',e=>{e.stopPropagation();close()});
+  page.addEventListener('click',()=>{if(state==='open'||state==='opening')close()});
+  page.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target===page){e.preventDefault();close()}});
+  addEventListener('keydown',e=>{if(e.key==='Escape')close()});
+})();
+</script>
+</body>
+</html>

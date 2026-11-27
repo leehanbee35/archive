@@ -1,0 +1,90 @@
+<!doctype html>
+<!-- meta: {"name":"동기화 버튼","cat":"버튼","desc":"누르면 버튼 안에 진행 막대가 차오르고, 다 끝나면 체크 표시로 바뀌었다가 돌아오는 버튼","added":"2026-11-27"} -->
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<title>동기화 버튼</title>
+<style>
+  :root{--bg:#e5eae2;--ink:#1f2c26;--mute:#7c8780;--fill:#24392f;--ease:cubic-bezier(.65,0,.25,1)}
+  *{box-sizing:border-box;margin:0}
+  html,body{height:100%}
+  body{display:grid;place-items:center;
+    background:radial-gradient(70% 60% at 50% 45%,#eef2ec,var(--bg));
+    font-family:"Pretendard Variable",Pretendard,-apple-system,"Malgun Gothic",sans-serif;color:var(--ink)}
+  .wrap{display:flex;flex-direction:column;align-items:center;gap:22px}
+
+  .btn{position:relative;width:200px;height:68px;border:0;border-radius:999px;cursor:pointer;color:var(--ink);
+    background:linear-gradient(180deg,#fbfcfa,#eef1ec);
+    box-shadow:0 1px 0 #fff inset,0 -2px 3px rgba(31,44,38,.06) inset,
+               0 14px 28px rgba(31,44,38,.13),0 3px 6px rgba(31,44,38,.08);
+    font:inherit;font-size:18px;font-weight:600;letter-spacing:-.02em;
+    transition:transform .2s var(--ease),box-shadow .2s var(--ease)}
+  .btn:hover{transform:translateY(-1px);box-shadow:0 1px 0 #fff inset,0 -2px 3px rgba(31,44,38,.06) inset,0 18px 34px rgba(31,44,38,.15),0 4px 8px rgba(31,44,38,.08)}
+  .btn:active{transform:translateY(1px) scale(.98)}
+  .btn:focus-visible{outline:2px solid var(--fill);outline-offset:4px}
+  .btn[aria-busy="true"]{cursor:default}
+
+  .face{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:10px;
+    transition:opacity .3s var(--ease),transform .4s var(--ease),filter .3s}
+  .face.hide{opacity:0;transform:scale(.92);filter:blur(4px);pointer-events:none}
+
+  /* 진행 막대 */
+  .track{position:absolute;left:24px;right:24px;top:50%;height:7px;margin-top:-3.5px;border-radius:99px;
+    background:rgba(31,44,38,.09);box-shadow:0 1px 1px rgba(31,44,38,.12) inset;overflow:hidden}
+  .bar{display:block;height:100%;width:0;border-radius:inherit;background:linear-gradient(90deg,#1d3128,#2f4a3d)}
+  .face.load{transform:scaleX(.4)}
+  .face.load:not(.hide){transform:none}
+
+  .check{width:26px;height:26px;border-radius:50%;background:var(--fill);display:grid;place-items:center;
+    transform:scale(.3) rotate(-30deg);transition:transform .5s cubic-bezier(.3,1.6,.5,1)}
+  .done:not(.hide) .check{transform:none}
+  .check path{stroke-dasharray:20;stroke-dashoffset:20;transition:stroke-dashoffset .4s .15s ease}
+  .done:not(.hide) .check path{stroke-dashoffset:0}
+
+  .sub{font-size:14px;color:var(--mute);font-feature-settings:"tnum";min-height:1.4em;transition:opacity .2s}
+  .sub.fade{opacity:0}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <button class="btn" id="btn" aria-live="polite">
+      <span class="face idle" id="idle">노트 동기화</span>
+      <span class="face load hide" id="load"><span class="track"><span class="bar" id="bar"></span></span></span>
+      <span class="face done hide" id="done">
+        <span class="check"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7.4 5.8 10 11 4.4" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        완료
+      </span>
+    </button>
+    <p class="sub" id="sub">노트 · 방금 동기화됨</p>
+  </div>
+<script>
+  const TOTAL = 148;
+  const btn = document.getElementById('btn'), sub = document.getElementById('sub'), bar = document.getElementById('bar');
+  const face = { idle: idle, load: load, done: done };
+  const show = k => Object.entries(face).forEach(([n, el]) => el.classList.toggle('hide', n !== k));
+  const say = t => { sub.classList.add('fade'); setTimeout(() => { sub.textContent = t; sub.classList.remove('fade'); }, 160); };
+  let busy = false;
+
+  btn.addEventListener('click', () => {
+    if (busy) return;
+    busy = true; btn.setAttribute('aria-busy', 'true');
+    bar.style.width = '0%';
+    show('load'); say(`노트 · 0 / ${TOTAL}`);
+    const start = performance.now(), D = 2600;
+    // 실제 동기화처럼 빨라졌다 느려졌다 하는 속도
+    const curve = p => p + Math.sin(p * Math.PI * 3) * .04 * (1 - p);
+    (function step(now) {
+      const p = Math.min(1, (now - start) / D), v = Math.max(0, Math.min(1, curve(p)));
+      bar.style.width = (v * 100) + '%';
+      sub.textContent = `노트 · ${Math.round(v * TOTAL)} / ${TOTAL}`;
+      if (p < 1) return requestAnimationFrame(step);
+      setTimeout(() => { show('done'); say('노트 · 방금 동기화됨'); }, 250);
+      setTimeout(() => { show('idle'); busy = false; btn.removeAttribute('aria-busy'); }, 2400);
+    })(start);
+  });
+</script>
+</body>
+</html>

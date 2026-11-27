@@ -1,0 +1,341 @@
+<!doctype html>
+<!-- meta: {"name":"청사진 대시보드","cat":"화면","desc":"집 설계 대시보드. 방에 마우스를 올리면 도면과 면적표가 함께 빛나고, 버튼을 누르면 종이가 말려 넘어가며 청사진으로 바뀌어요","added":"2026-11-27"} -->
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<title>청사진 대시보드</title>
+<style>
+  *{box-sizing:border-box;margin:0}
+  html,body{height:100%;overflow:hidden}
+  body{background:#d9d9d4;display:grid;place-items:center;
+    font-family:"Pretendard Variable",Pretendard,-apple-system,"Malgun Gothic",sans-serif}
+  .mono{font-family:"Pretendard Variable",Pretendard,-apple-system,"Malgun Gothic",sans-serif}
+
+  /* 1280×800 크기로 그린 뒤 창 크기에 맞춰 줄였다 늘였다 */
+  #stage{position:absolute;left:50%;top:50%;width:1280px;height:800px;flex:none;overflow:hidden;border-radius:18px;
+    box-shadow:0 30px 80px rgba(0,0,0,.25);transform-origin:50% 50%}
+
+  .layer{position:absolute;inset:0;padding:18px 20px;display:flex;flex-direction:column;gap:14px;
+    background-color:var(--bg);color:var(--ink);
+    background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+    background-size:24px 24px}
+  .trace{--bg:#f2f2ef;--panel:rgba(250,250,248,.75);--ink:#1c1c1e;--mute:#8a8a85;--line:rgba(0,0,0,.1);--line2:rgba(0,0,0,.18);
+    --grid:rgba(0,0,0,.045);--wall:#1c1c1e;--thin:#6e6e69;--acc:#e0484a;--accbg:rgba(224,72,74,.1);--paper:#fff}
+  .blue{--bg:#1e3d98;--panel:rgba(255,255,255,.05);--ink:#eef2ff;--mute:#a9b7e6;--line:rgba(255,255,255,.2);--line2:rgba(255,255,255,.35);
+    --grid:rgba(255,255,255,.07);--wall:#eef2ff;--thin:#b8c5f2;--acc:#ffd257;--accbg:rgba(255,210,87,.12);--paper:transparent}
+
+  /* 윗줄 */
+  .top{display:flex;align-items:center;justify-content:space-between;height:40px}
+  .top .l,.top .r{display:flex;align-items:center;gap:14px}
+  .logo{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;letter-spacing:-.02em}
+  .logo i{width:18px;height:18px;border:2px solid var(--ink);border-radius:3px;position:relative}
+  .logo i::after{content:"";position:absolute;left:3px;right:3px;bottom:3px;height:2px;background:var(--ink)}
+  .sep{width:1px;height:18px;background:var(--line2)}
+  .proj{font-size:14px;font-weight:600}
+  .tagbox{font-size:11px;padding:5px 9px;border:1px solid var(--line2);border-radius:6px;color:var(--ink)}
+  .due{font-size:12px;color:var(--mute);display:flex;align-items:center;gap:6px}
+  .due::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--acc)}
+  .scale{font-size:11px;color:var(--mute);letter-spacing:.06em}
+  .seg{display:flex;padding:3px;border-radius:999px;border:1px solid var(--line2);background:var(--panel)}
+  .seg button{border:0;background:none;color:var(--mute);font:inherit;font-size:12px;font-weight:600;padding:6px 14px;border-radius:999px;cursor:pointer}
+  .seg button.on{background:var(--ink);color:var(--bg)}
+  .who{display:flex}
+  .who b{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:10px;color:#fff;border:2px solid var(--bg)}
+  .who b+b{margin-left:-8px}
+
+  /* 칸들 */
+  .main{flex:1;display:grid;grid-template-columns:1.72fr 1fr 1fr;grid-template-rows:1fr 1fr;gap:14px;min-height:0}
+  .panel{border:1px solid var(--line);border-radius:14px;background:var(--panel);padding:14px 16px;display:flex;flex-direction:column;min-height:0;position:relative}
+  .plan{grid-row:1/3}
+  .ph{display:flex;justify-content:space-between;font-size:10.5px;letter-spacing:.14em;color:var(--mute);margin-bottom:8px}
+  .ph b{font-weight:500;color:var(--ink);letter-spacing:.06em}
+
+  /* 평면도 */
+  .plan svg{flex:1;width:100%;min-height:0}
+  .room{fill:transparent;cursor:pointer;transition:fill .25s}
+  .room.on{fill:var(--accbg)}
+  .hatch{opacity:0;transition:opacity .25s;pointer-events:none}
+  .hatch.on{opacity:1}
+  .wall{stroke:var(--wall);fill:none;stroke-linecap:square}
+  .thin{stroke:var(--thin);fill:none;stroke-width:1}
+  .rl{fill:var(--ink);font-size:9px;font-weight:600;pointer-events:none;transition:fill .25s}
+  .ra{fill:var(--mute);font-size:7.5px;pointer-events:none}
+  .rl.on{fill:var(--acc)}
+  .dim{stroke:var(--thin);stroke-width:.7}
+  .dimt{fill:var(--mute);font-size:6.5px}
+  .note{fill:none;stroke:var(--acc);stroke-width:1.3;stroke-linecap:round;stroke-dasharray:600;stroke-dashoffset:600;animation:draw 2.4s .5s ease forwards}
+  .notet{fill:var(--acc);font-size:9.5px;font-style:italic;font-family:"Segoe Print","Comic Sans MS",cursive;opacity:0;animation:fade .6s 2.2s forwards}
+  @keyframes draw{to{stroke-dashoffset:0}}
+  @keyframes fade{to{opacity:1}}
+
+  /* 일조 */
+  .sun svg{width:100%;flex:1;min-height:0}
+  .sunrow{display:flex;justify-content:space-between;align-items:end}
+  .sunrow small{display:block;font-size:11px;color:var(--mute)}
+  .sunrow small+small{margin-top:4px;color:var(--ink);font-size:12px}
+  .pct{font-size:34px;font-weight:600;letter-spacing:-.03em}
+  .sun{cursor:ew-resize}
+
+  /* 면적 */
+  .rows{display:flex;flex-direction:column;flex:1;justify-content:space-between}
+  .ar{display:flex;justify-content:space-between;font-size:12.5px;padding:5px 6px;margin:0 -6px;border-radius:6px;cursor:pointer;
+    border-bottom:1px dashed var(--line);transition:background .2s,color .2s}
+  .ar span:last-child{font-size:11.5px}
+  .ar.on{background:var(--accbg);color:var(--acc)}
+  .tot{display:flex;justify-content:space-between;margin-top:8px;font-size:11px;color:var(--mute)}
+  .tot b{color:var(--ink)}
+
+  /* 자재 */
+  .mat{display:flex;gap:12px;align-items:center;padding:7px 0;border-bottom:1px dashed var(--line)}
+  .mat:last-child{border:0}
+  .mat svg{width:42px;height:34px;flex:none;border:1px solid var(--line2);border-radius:4px;background:var(--paper)}
+  .mat small{font-size:9px;color:var(--mute);letter-spacing:.1em}
+  .mat b{display:block;font-size:13px;font-weight:600;margin:1px 0}
+  .mat span{font-size:10.5px;color:var(--mute)}
+
+  /* 공사비 */
+  .cost .big{font-size:36px;font-weight:600;letter-spacing:-.04em;line-height:1.1}
+  .cost .delta{font-size:11px;color:var(--mute);margin-top:4px}
+  .cost .delta b{color:var(--acc);font-weight:600}
+  .bars{display:grid;grid-template-columns:repeat(20,1fr);gap:3px;margin:14px 0 12px;height:30px}
+  .bars i{border:1px solid var(--line2);border-radius:2px}
+  .bars i.f{background:repeating-linear-gradient(90deg,var(--ink) 0 1px,transparent 1px 4px);opacity:.75}
+  .bk{display:grid;grid-template-columns:1fr auto 1fr auto;gap:6px 14px;font-size:11px;color:var(--mute)}
+  .bk b{color:var(--ink);font-weight:500;text-align:right}
+
+  /* 종이 넘김 */
+  .flapwrap{position:absolute;inset:0;pointer-events:none;filter:drop-shadow(-10px 14px 18px rgba(0,0,0,.28));z-index:9}
+  .flap{position:absolute;inset:0;background:linear-gradient(225deg,#ffffff 0%,#ececea 45%,#d4d4cf 100%);
+    background-image:linear-gradient(rgba(0,0,0,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,.03) 1px,transparent 1px),
+      linear-gradient(225deg,#ffffff 0%,#ededea 45%,#cfcfca 100%);background-size:24px 24px,24px 24px,auto}
+  .flap.dark{background-image:linear-gradient(rgba(255,255,255,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.06) 1px,transparent 1px),
+      linear-gradient(225deg,#3a59b8 0%,#24449f 45%,#16307a 100%)}
+</style>
+</head>
+<body>
+<div id="stage"></div>
+
+<script>
+const ROOMS = [
+  { id: 'living', name: '거실 / 주방', a: 26.8, r: [40, 40, 170, 125], lx: 70, ly: 128 },
+  { id: 'study',  name: '서재',       a: 7.4,  r: [210, 40, 80, 62],   lx: 228, ly: 66 },
+  { id: 'bath',   name: '욕실',       a: 5.3,  r: [210, 102, 80, 63],  lx: 228, ly: 128 },
+  { id: 'hall',   name: '복도',       a: 8.2,  r: [40, 165, 250, 22],  lx: 125, ly: 179 },
+  { id: 'bed1',   name: '안방',       a: 12.5, r: [40, 187, 115, 88],  lx: 80, ly: 230 },
+  { id: 'bed2',   name: '작은방',     a: 8.6,  r: [155, 187, 70, 88],  lx: 170, ly: 230 },
+  { id: 'util',   name: '다용도실',   a: 4.9,  r: [225, 187, 65, 88],  lx: 238, ly: 230 },
+];
+const state = { room: null, t: .55, view: 'trace', busy: false, sunHover: false };
+
+function planSVG(th) {
+  const P = `hp-${th}`;
+  return `
+  <svg viewBox="0 0 330 320" preserveAspectRatio="xMidYMid meet">
+    <defs>
+      <pattern id="${P}" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+        <line x1="0" y1="0" x2="0" y2="6" stroke="var(--acc)" stroke-width="1" opacity=".55"/>
+      </pattern>
+    </defs>
+    <!-- 치수선 -->
+    <line class="dim" x1="40" y1="22" x2="210" y2="22"/><line class="dim" x1="210" y1="22" x2="290" y2="22"/>
+    <line class="dim" x1="40" y1="18" x2="40" y2="26"/><line class="dim" x1="210" y1="18" x2="210" y2="26"/><line class="dim" x1="290" y1="18" x2="290" y2="26"/>
+    <text class="dimt mono" x="118" y="18">6 425</text><text class="dimt mono" x="243" y="18">3 010</text>
+    <line class="dim" x1="22" y1="40" x2="22" y2="275"/>
+    <line class="dim" x1="18" y1="40" x2="26" y2="40"/><line class="dim" x1="18" y1="165" x2="26" y2="165"/><line class="dim" x1="18" y1="275" x2="26" y2="275"/>
+    <text class="dimt mono" x="14" y="110" transform="rotate(-90 14 110)">4 725</text>
+    <text class="dimt mono" x="14" y="228" transform="rotate(-90 14 228)">4 120</text>
+
+    <!-- 방 (마우스 영역 + 빗금) -->
+    ${ROOMS.map(r => `
+      <rect class="room" data-room="${r.id}" x="${r.r[0]}" y="${r.r[1]}" width="${r.r[2]}" height="${r.r[3]}"/>
+      <rect class="hatch" data-room="${r.id}" x="${r.r[0]}" y="${r.r[1]}" width="${r.r[2]}" height="${r.r[3]}" fill="url(#${P})"/>`).join('')}
+
+    <!-- 가구 -->
+    <rect class="thin" x="86" y="64" width="72" height="26" rx="6"/>
+    ${[0,1,2,3].map(i => `<circle class="thin" cx="${96 + i * 17}" cy="58" r="4"/><circle class="thin" cx="${96 + i * 17}" cy="96" r="4"/>`).join('')}
+    <rect class="thin" x="150" y="128" width="46" height="22" rx="3"/>
+    <rect class="thin" x="48" y="48" width="26" height="60"/>
+    <rect class="thin" x="236" y="48" width="44" height="18"/>
+    <rect class="thin" x="262" y="110" width="20" height="44" rx="8"/>
+    <circle class="thin" cx="228" cy="150" r="6"/>
+    <rect class="thin" x="52" y="195" width="58" height="46"/><rect class="thin" x="52" y="195" width="58" height="10"/>
+    <rect class="thin" x="162" y="200" width="30" height="44"/>
+    <rect class="thin" x="236" y="252" width="44" height="16"/>
+
+    <!-- 벽 -->
+    <rect class="wall" x="40" y="40" width="250" height="235" stroke-width="6"/>
+    <path class="wall" stroke-width="3" d="M210 40V95 M210 112V165 M210 102H290 M40 165H120 M140 165H200 M220 165H290
+      M40 187H85 M105 187H170 M190 187H240 M260 187H290 M155 187V275 M225 187V275"/>
+    <!-- 문 -->
+    <path class="thin" d="M210 95 A17 17 0 0 1 193 112 M120 165 A20 20 0 0 0 140 145 M85 187 A20 20 0 0 1 105 207 M170 187 A20 20 0 0 0 190 207 M240 187 A20 20 0 0 1 260 207"/>
+    <!-- 창 -->
+    <path class="thin" d="M90 37V43 M150 37V43 M90 40H150 M287 60V90 M37 60V120 M37 210V255"/>
+
+    <!-- 테라스 -->
+    <rect x="120" y="275" width="130" height="24" fill="none" stroke="var(--thin)" stroke-dasharray="3 3"/>
+    <text class="ra mono" x="158" y="291">테라스 · 15.6 m²</text>
+    <!-- 방위 -->
+    <g transform="translate(300 292)"><circle class="thin" r="9"/><path d="M0 -6 L4 5 L0 2 L-4 5Z" fill="var(--ink)"/><text class="dimt mono" x="-2.5" y="-11">N</text></g>
+
+    <!-- 이름 -->
+    ${ROOMS.map(r => `<text class="rl" data-room="${r.id}" x="${r.lx}" y="${r.ly}">${r.name}</text>
+      <text class="ra mono" x="${r.lx}" y="${r.ly + 10}">${r.a} m²</text>`).join('')}
+
+    <!-- 손메모 -->
+    <path class="note" d="M80 62 C 76 50, 120 46, 140 52 S 170 54, 166 72 S 168 100, 140 99 S 90 104, 82 92 S 78 70, 84 64"/>
+    <path class="note" d="M150 52 C 160 40, 172 34, 182 33"/>
+    <text class="notet" x="92" y="34" transform="rotate(-5 92 34)">식탁 1.8m → 2.1m?</text>
+  </svg>`;
+}
+
+function sunSVG() {
+  return `
+  <svg viewBox="0 0 200 110" preserveAspectRatio="xMidYMid meet">
+    <path d="M30 95 A70 70 0 0 1 170 95" fill="none" stroke="var(--thin)" stroke-dasharray="2 3"/>
+    <line x1="20" y1="95" x2="180" y2="95" stroke="var(--line2)"/>
+    <g class="shadow"><polygon points="82,62 122,62 122,88 82,88" fill="var(--ink)" opacity=".12"/></g>
+    <rect x="82" y="62" width="40" height="26" fill="var(--paper)" stroke="var(--ink)" stroke-width="1.5"/>
+    <path d="M82 62 L102 52 L122 62" fill="none" stroke="var(--ink)" stroke-width="1.2"/>
+    <g class="sundot"><circle r="7" fill="var(--acc)" opacity=".22"/><circle r="3.4" fill="var(--acc)"/></g>
+  </svg>`;
+}
+
+const MATS = [
+  { k: 'M01', n: '낙엽송 사이딩', d: '세로 시공 · 140mm', p: 'v' },
+  { k: 'M02', n: '재생 벽돌', d: '플레미시 쌓기', p: 'b' },
+  { k: 'M03', n: '징크 지붕', d: '스탠딩 심 · 430', p: 'z' },
+];
+function matSwatch(p) {
+  if (p === 'v') return `<svg viewBox="0 0 42 34">${Array.from({ length: 8 }, (_, i) => `<line x1="${4 + i * 5}" y1="0" x2="${4 + i * 5}" y2="34" stroke="var(--ink)" stroke-width=".7"/>`).join('')}</svg>`;
+  if (p === 'b') return `<svg viewBox="0 0 42 34">${Array.from({ length: 5 }, (_, r) => Array.from({ length: 4 }, (_, c) =>
+      `<rect x="${(r % 2 ? -5 : 0) + c * 12 + 1}" y="${r * 7 + 1}" width="10" height="5" fill="none" stroke="var(--ink)" stroke-width=".7"/>`).join('')).join('')}</svg>`;
+  return `<svg viewBox="0 0 42 34">${Array.from({ length: 5 }, (_, i) => `<path d="M${4 + i * 8} 0V34" stroke="var(--ink)" stroke-width="1.4"/><path d="M${8 + i * 8} 0V34" stroke="var(--ink)" stroke-width=".4"/>`).join('')}</svg>`;
+}
+
+function layerHTML(th) {
+  const total = ROOMS.reduce((s, r) => s + r.a, 0).toFixed(1);
+  return `
+  <div class="top">
+    <div class="l">
+      <div class="logo"><i></i>도면함</div><span class="sep"></span>
+      <span class="proj">연남동 주택</span>
+      <span class="tagbox mono">A-102 · 1층</span>
+      <span class="due">인허가 결정까지 19일</span>
+    </div>
+    <div class="r">
+      <span class="scale mono">1:100 @ A1 · REV C</span>
+      <div class="seg"><button data-v="trace" class="${th === 'trace' ? 'on' : ''}">트레이스</button><button data-v="blue" class="${th === 'blue' ? 'on' : ''}">청사진</button></div>
+      <div class="who"><b style="background:#e0484a">한</b><b style="background:#6d6af0">민</b></div>
+    </div>
+  </div>
+  <div class="main">
+    <section class="panel plan"><div class="ph mono"><span>01 — 1층 평면도</span><b>연면적 85.0 m²</b></div>${planSVG(th)}</section>
+    <section class="panel sun"><div class="ph mono"><span>02 — 일조 분석</span><b>하지</b></div>${sunSVG()}
+      <div class="sunrow"><div><small class="mono suntime">6월 21일 · 14:20</small><small>거실 볕 드는 정도</small></div><div class="pct">0%</div></div></section>
+    <section class="panel"><div class="ph mono"><span>03 — 면적</span><b>m²</b></div>
+      <div class="rows">${ROOMS.map(r => `<div class="ar" data-room="${r.id}"><span>${r.name}</span><span class="mono">${r.a.toFixed(1)}</span></div>`).join('')}</div>
+      <div class="tot mono"><span>전용 ${total}</span><b>연면적 85.0</b></div></section>
+    <section class="panel"><div class="ph mono"><span>04 — 자재</span><b>3</b></div>
+      ${MATS.map(m => `<div class="mat">${matSwatch(m.p)}<div><small class="mono">${m.k}</small><b>${m.n}</b><span>${m.d}</span></div></div>`).join('')}</section>
+    <section class="panel cost"><div class="ph mono"><span>05 — 공사비</span><b>REV C</b></div>
+      <div class="big">₩5억 1,200만</div>
+      <div class="delta"><b>+₩640만</b> B안 대비 · 예비비 7.5%</div>
+      <div class="bars">${Array.from({ length: 20 }, (_, i) => `<i class="${i < 14 ? 'f' : ''}"></i>`).join('')}</div>
+      <div class="bk mono"><span>골조</span><b>34%</b><span>외피</span><b>25%</b><span>마감</span><b>22%</b><span>설비</span><b>19%</b></div></section>
+  </div>`;
+}
+
+// 두 장(트레이스 / 청사진)을 겹쳐 놓고, 위의 장을 말아서 넘긴다
+const stage = document.getElementById('stage');
+const L = {};
+for (const th of ['blue', 'trace']) {
+  const d = document.createElement('div');
+  d.className = `layer ${th}`; d.innerHTML = layerHTML(th); stage.append(d); L[th] = d;
+}
+const flapWrap = document.createElement('div'); flapWrap.className = 'flapwrap';
+const flap = document.createElement('div'); flap.className = 'flap'; flapWrap.append(flap); stage.append(flapWrap);
+flapWrap.style.display = 'none';
+
+// 방 강조 (두 장 모두)
+function setRoom(id) {
+  state.room = id;
+  stage.querySelectorAll('[data-room]').forEach(el => el.classList.toggle('on', el.dataset.room === id));
+}
+stage.addEventListener('pointerover', e => { const el = e.target.closest('[data-room]'); setRoom(el ? el.dataset.room : null); });
+stage.addEventListener('pointerleave', () => setRoom(null));
+
+// 일조
+function drawSun() {
+  const t = state.t, a = Math.PI * (1 - t);
+  const x = 100 + Math.cos(a) * 70, y = 95 - Math.sin(a) * 70;
+  const mins = Math.round(6 * 60 + t * 14 * 60), hh = String(Math.floor(mins / 60)).padStart(2, '0'), mm = String(mins % 60).padStart(2, '0');
+  const pct = Math.round(38 + 46 * Math.sin(Math.PI * Math.min(1, t * 1.15)));
+  const sx = -Math.cos(a) * 26, sh = Math.max(4, 40 * (1 - Math.sin(a)));
+  stage.querySelectorAll('.sundot').forEach(g => g.setAttribute('transform', `translate(${x} ${y})`));
+  stage.querySelectorAll('.shadow polygon').forEach(p => p.setAttribute('points',
+    `82,88 122,88 ${122 - sx},${88 + 0} ${122 - sx * 1.2},${88 + sh * .18} ${82 - sx * 1.2},${88 + sh * .18}`));
+  stage.querySelectorAll('.suntime').forEach(s => s.textContent = `6월 21일 · ${hh}:${mm}`);
+  stage.querySelectorAll('.pct').forEach(s => s.textContent = pct + '%');
+}
+stage.addEventListener('pointermove', e => {
+  const p = e.target.closest('.sun'); state.sunHover = !!p;
+  if (p) { const r = p.getBoundingClientRect(); state.t = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)); drawSun(); }
+});
+let dir = 1;
+(function idle() { if (!state.sunHover) { state.t += dir * .0009; if (state.t > .95 || state.t < .05) dir *= -1; drawSun(); } requestAnimationFrame(idle); })();
+
+// 종이 말아 넘기기
+const W = 1280, H = 800;
+function clip(poly, f) { // f(p) <= 0 인 쪽만 남긴다
+  const out = [];
+  for (let i = 0; i < poly.length; i++) {
+    const a = poly[i], b = poly[(i + 1) % poly.length], fa = f(a), fb = f(b);
+    if (fa <= 0) out.push(a);
+    if ((fa <= 0) !== (fb <= 0)) { const t = fa / (fa - fb); out.push([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]); }
+  }
+  return out;
+}
+const poly = pts => pts.length > 2 ? `polygon(${pts.map(p => `${p[0].toFixed(1)}px ${p[1].toFixed(1)}px`).join(',')})` : 'polygon(0 0,0 0,0 0)';
+const RECT = [[0, 0], [W, 0], [W, H], [0, H]];
+const ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+function flip(to) {
+  if (state.busy || to === state.view) return;
+  state.busy = true;
+  const top = L[state.view], under = L[to];
+  under.style.zIndex = 1; top.style.zIndex = 2;
+  flap.classList.toggle('dark', state.view === 'blue');
+  flapWrap.style.display = '';
+  stage.querySelectorAll('.seg button').forEach(b => b.classList.toggle('on', b.dataset.v === to));
+  const start = performance.now(), D = 1300, k0 = W, k1 = -H - 260;
+  (function step(now) {
+    const p = Math.min(1, (now - start) / D), k = k0 + (k1 - k0) * ease(p);
+    const stay = clip(RECT, q => q[0] - q[1] - k);
+    const peeled = clip(RECT, q => k - (q[0] - q[1]));
+    // 접힌 부분: 접는 선을 기준으로 뒤집고, 살짝 말려 들어가게 줄인다
+    const curl = .92;
+    const flapPts = peeled.map(([x, y]) => {
+      const rx = y + k, ry = x - k;                        // 선 대칭
+      const fx = (x + y + k) / 2, fy = (x + y - k) / 2;     // 접는 선 위의 발
+      return [fx + (rx - fx) * curl, fy + (ry - fy) * curl];
+    });
+    top.style.clipPath = poly(stay);
+    flap.style.clipPath = poly(flapPts);
+    if (p < 1) requestAnimationFrame(step);
+    else {
+      top.style.clipPath = ''; top.style.zIndex = 0; under.style.zIndex = 2;
+      flapWrap.style.display = 'none'; state.view = to; state.busy = false;
+    }
+  })(start);
+}
+stage.addEventListener('click', e => { const b = e.target.closest('.seg button'); if (b) flip(b.dataset.v); });
+L.trace.style.zIndex = 2; L.blue.style.zIndex = 0;
+
+// 창 크기에 맞추기
+function fit() { const s = Math.min(innerWidth / (W + 40), innerHeight / (H + 40)); stage.style.transform = `translate(-50%,-50%) scale(${s})`; }
+addEventListener('resize', fit); fit(); drawSun();
+</script>
+</body>
+</html>

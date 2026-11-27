@@ -1,0 +1,232 @@
+<!doctype html>
+<!-- meta: {"name":"집중 블라인드","cat":"버튼","desc":"누르면 블라인드가 닫히고 방이 어두워지는 집중 모드 스위치","added":"2026-11-27"} -->
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<title>집중 블라인드</title>
+<style>
+  :root{
+    --ease: cubic-bezier(.65,0,.25,1);
+    --spring: cubic-bezier(.5,1.6,.4,1);
+    --dur: .9s;
+  }
+  *{box-sizing:border-box;margin:0}
+  html,body{height:100%}
+  body{
+    display:grid;place-items:center;overflow:hidden;
+    font-family:"Pretendard Variable",Pretendard,-apple-system,"Malgun Gothic",sans-serif;
+    background:#ebe4d7;color:#2a251f;
+    transition:background var(--dur) var(--ease), color var(--dur) var(--ease);
+  }
+  body.on{background:#3b3127;color:#efe8dc}
+
+  /* 벽에 비친 블라인드 그림자 (낮) */
+  .wall{position:fixed;inset:-20%;pointer-events:none;
+    background:repeating-linear-gradient(-18deg,
+      rgba(255,255,255,0) 0 46px, rgba(255,250,238,.75) 46px 82px, rgba(255,255,255,0) 82px 120px);
+    filter:blur(10px);opacity:.9;
+    transition:opacity var(--dur) var(--ease), transform 1.4s var(--ease);
+  }
+  .wall.shade{background:repeating-linear-gradient(-18deg,
+      rgba(0,0,0,0) 0 46px, rgba(120,104,84,.10) 46px 82px, rgba(0,0,0,0) 82px 120px);
+    opacity:.0}
+  body.on .wall{opacity:0;transform:translateY(40px)}
+  body.on .wall.shade{opacity:0}
+  /* 밤: 은은한 조명 */
+  .glow{position:fixed;inset:0;pointer-events:none;opacity:0;
+    background:radial-gradient(60% 55% at 50% 38%, rgba(140,112,82,.55), rgba(0,0,0,0) 70%),
+               radial-gradient(120% 90% at 50% 120%, rgba(0,0,0,.45), rgba(0,0,0,0) 60%);
+    transition:opacity var(--dur) var(--ease)}
+  body.on .glow{opacity:1}
+
+  .stage{position:relative;display:flex;flex-direction:column;align-items:center;gap:44px}
+
+  /* ── 스위치 ── */
+  .switch{
+    --w:340px;--h:120px;--knob:104px;--pad:8px;
+    position:relative;width:var(--w);height:var(--h);border-radius:999px;border:0;padding:0;cursor:pointer;
+    background:linear-gradient(#f6f1e8,#e9e1d3);
+    box-shadow:0 1px 0 rgba(255,255,255,.9) inset, 0 -2px 4px rgba(120,100,70,.12) inset,
+               0 18px 40px rgba(90,70,40,.18), 0 3px 8px rgba(90,70,40,.12);
+    transition:background var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+    -webkit-tap-highlight-color:transparent;touch-action:none;
+  }
+  body.on .switch{background:linear-gradient(#cfc4b2,#bcb09c);
+    box-shadow:0 1px 0 rgba(255,255,255,.35) inset, 0 -2px 4px rgba(0,0,0,.15) inset,
+               0 22px 50px rgba(0,0,0,.45), 0 3px 8px rgba(0,0,0,.3)}
+  .switch:focus-visible{outline:2px solid #c98a3c;outline-offset:6px}
+
+  /* 창문 */
+  .window{position:absolute;inset:var(--pad);border-radius:999px;overflow:hidden;
+    box-shadow:0 2px 6px rgba(80,60,30,.25) inset, 0 0 0 1px rgba(120,100,70,.12) inset;
+    perspective:420px}
+  .sky{position:absolute;inset:0;
+    background:linear-gradient(180deg,#bcd4ea 0%,#dbe6ee 35%,#f3ecd9 62%,#f3dcae 100%);
+    transition:filter var(--dur) var(--ease)}
+  .sky::after{content:"";position:absolute;inset:0;
+    background:radial-gradient(40% 70% at 70% 20%,rgba(255,255,255,.8),rgba(255,255,255,0) 70%)}
+  body.on .sky{filter:brightness(.35) saturate(.5)}
+
+  .slats{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:space-between;padding:3px 0}
+  .slat{flex:1;margin:1px 0;transform-origin:50% 50%;
+    background:linear-gradient(#fbf8f2,#e6dece 60%,#d5cbb8);
+    box-shadow:0 1px 1px rgba(90,70,40,.18);
+    transform:rotateX(70deg);
+    transition:transform .7s var(--ease), background var(--dur) var(--ease);
+  }
+  body.on .slat{transform:rotateX(0deg);background:linear-gradient(#e4dccd,#cfc5b2 55%,#bdb19c)}
+  /* 창틀 세로선 */
+  .mullion{position:absolute;top:0;bottom:0;width:2px;background:rgba(150,130,100,.35);
+    box-shadow:1px 0 0 rgba(255,255,255,.6)}
+  .mullion.m1{left:33.3%}
+  .mullion.m2{left:66.6%}
+  /* 끈 */
+  .cord{position:absolute;top:0;bottom:0;width:1px;background:rgba(120,100,70,.3)}
+
+  /* 손잡이 */
+  .knob{position:absolute;top:calc((var(--h) - var(--knob))/2);left:var(--pad);
+    width:var(--knob);height:var(--knob);border-radius:50%;
+    background:radial-gradient(circle at 35% 30%,#fffefb,#f1ebdf 60%,#e2d9c8);
+    box-shadow:0 10px 22px rgba(80,60,30,.28),0 2px 4px rgba(80,60,30,.2),
+               0 1px 0 rgba(255,255,255,.95) inset, 0 -3px 6px rgba(120,100,70,.15) inset;
+    display:grid;place-items:center;
+    transition:transform .75s var(--spring), background var(--dur) var(--ease);
+    will-change:transform}
+  body.on .knob{transform:translateX(calc(var(--w) - var(--knob) - var(--pad)*2));
+    background:radial-gradient(circle at 35% 30%,#f4efe6,#e2dacb 60%,#cfc5b3)}
+  .switch.drag .knob{transition:none}
+  .switch:active .knob{scale:.97}
+  .dial{width:46px;height:46px;border-radius:50%;position:relative;
+    background:linear-gradient(#f2ece1,#fbf8f2);
+    box-shadow:0 1px 2px rgba(90,70,40,.25) inset, 0 1px 0 rgba(255,255,255,.9)}
+  .dial svg{position:absolute;inset:0;margin:auto;width:24px;height:24px;
+    transition:opacity .45s var(--ease), transform .7s var(--ease)}
+  .sun{color:#d08a2c}
+  .moon{color:#5b5578;opacity:0;transform:rotate(-90deg) scale(.6)}
+  body.on .sun{opacity:0;transform:rotate(90deg) scale(.6)}
+  body.on .moon{opacity:1;transform:none}
+
+  /* ── 글자 ── */
+  .copy{text-align:center;display:flex;flex-direction:column;align-items:center;gap:14px}
+  .label{font:500 13px/1 "Pretendard Variable",Pretendard,-apple-system,"Malgun Gothic",sans-serif;letter-spacing:.18em;
+    color:#8b8172;display:flex;align-items:center;gap:10px;transition:color var(--dur) var(--ease)}
+  .label i{width:7px;height:7px;border-radius:50%;background:#d98a3a;transition:background var(--dur) var(--ease)}
+  body.on .label{color:#a99f90}
+  body.on .label i{background:#9d95d4;box-shadow:0 0 10px #9d95d4}
+  h1{font-size:38px;font-weight:600;letter-spacing:-.03em}
+  .sub{font-size:14px;line-height:1;font-variant-numeric:tabular-nums;color:#7d7466;letter-spacing:.02em;
+    transition:color var(--dur) var(--ease)}
+  body.on .sub{color:#a99f90}
+  .swap{transition:opacity .35s ease, filter .35s ease}
+  .swap.out{opacity:0;filter:blur(6px)}
+
+  @media (max-width:420px){
+    .switch{--w:280px;--h:100px;--knob:86px;--pad:7px}
+    h1{font-size:28px}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition-duration:.01s!important}}
+</style>
+</head>
+<body>
+  <div class="wall"></div>
+  <div class="glow"></div>
+
+  <main class="stage">
+    <button class="switch" id="sw" role="switch" aria-checked="false" aria-label="집중 모드">
+      <span class="window">
+        <span class="sky"></span>
+        <span class="slats" id="slats"></span>
+        <span class="mullion m1"></span><span class="mullion m2"></span>
+      </span>
+      <span class="knob">
+        <span class="dial">
+          <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <circle cx="12" cy="12" r="4"/>
+            <path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/>
+          </svg>
+          <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round">
+            <path d="M19 14.5A7.5 7.5 0 0 1 9.5 5a7.5 7.5 0 1 0 9.5 9.5Z"/>
+          </svg>
+        </span>
+      </span>
+    </button>
+
+    <div class="copy">
+      <div class="label"><i></i>FOCUS MODE</div>
+      <h1 class="swap" id="title">밝고 시끄러운 오후.</h1>
+      <p class="sub swap" id="sub"></p>
+    </div>
+  </main>
+
+<script>
+  const sw = document.getElementById('sw');
+  const title = document.getElementById('title');
+  const sub = document.getElementById('sub');
+  const slats = document.getElementById('slats');
+  const NOTI = 6;
+
+  // 블라인드 살 만들기 (위에서 아래로 차례로 닫힘)
+  const N = 11;
+  for (let i = 0; i < N; i++) {
+    const s = document.createElement('span');
+    s.className = 'slat';
+    s.style.transitionDelay = (i * 0.035) + 's';
+    slats.appendChild(s);
+  }
+
+  let on = false, started = 0, timer = null;
+  const pad = n => String(n).padStart(2, '0');
+  const clock = () => { const d = new Date(); return pad(d.getHours()) + ':' + pad(d.getMinutes()); };
+
+  function renderSub() {
+    if (on) {
+      const s = Math.floor((Date.now() - started) / 1000);
+      sub.textContent = `알림 ${NOTI}개 보류 중 · ${pad(Math.floor(s / 60))}:${pad(s % 60)}`;
+    } else {
+      sub.textContent = `알림 ${NOTI}개 대기 중 · ${clock()}`;
+    }
+  }
+
+  function swapText(el, text) {
+    el.classList.add('out');
+    setTimeout(() => { el.textContent = text; el.classList.remove('out'); }, 300);
+  }
+
+  function set(v) {
+    if (v === on) return;
+    on = v;
+    document.body.classList.toggle('on', on);
+    sw.setAttribute('aria-checked', on);
+    // 닫힐 땐 위→아래, 열릴 땐 아래→위
+    [...slats.children].forEach((s, i) => {
+      s.style.transitionDelay = ((on ? i : N - 1 - i) * 0.035) + 's';
+    });
+    swapText(title, on ? '블라인드 내림. 깊은 집중.' : '밝고 시끄러운 오후.');
+    sub.classList.add('out');
+    setTimeout(() => { started = Date.now(); renderSub(); sub.classList.remove('out'); }, 300);
+  }
+
+  // 클릭 / 끌기
+  let down = null, moved = false;
+  sw.addEventListener('pointerdown', e => { down = e.clientX; moved = false; sw.setPointerCapture(e.pointerId); });
+  sw.addEventListener('pointermove', e => {
+    if (down === null) return;
+    const dx = e.clientX - down;
+    if (Math.abs(dx) > 24) { moved = true; set(dx > 0); }
+  });
+  sw.addEventListener('pointerup', () => { if (!moved) set(!on); down = null; });
+  sw.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight') set(true);
+    if (e.key === 'ArrowLeft') set(false);
+  });
+  sw.addEventListener('click', e => e.preventDefault());
+  sw.addEventListener('keyup', e => { if (e.key === ' ' || e.key === 'Enter') set(!on); });
+  sw.addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter') e.preventDefault(); });
+
+  renderSub();
+  timer = setInterval(renderSub, 1000);
+</script>
+</body>
+</html>

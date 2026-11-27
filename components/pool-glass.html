@@ -1,0 +1,307 @@
+<!doctype html>
+<!-- meta: {"name":"수영장 유리 메뉴","cat":"화면","desc":"물결이 일렁이는 수영장 위에 떠 있는 유리 메뉴. 아이콘을 누르면 유리가 물방울처럼 늘어나 카드로 펼쳐져요","added":"2026-11-27"} -->
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<title>수영장 유리 메뉴</title>
+<style>
+  :root{--ink:#0e2a3a;--mute:rgba(14,42,58,.62);--lane:#1b3f8c;--spring:cubic-bezier(.34,1.45,.5,1)}
+  *{box-sizing:border-box;margin:0}
+  html,body{height:100%;overflow:hidden}
+  body{font-family:"Pretendard Variable",Pretendard,-apple-system,"Malgun Gothic",sans-serif;color:var(--ink);
+    -webkit-font-smoothing:antialiased;background:#9fdde8;user-select:none;-webkit-user-select:none}
+
+  /* 수영장 바닥 */
+  .pool{position:fixed;inset:0;overflow:hidden;
+    background:
+      linear-gradient(rgba(255,255,255,.6) 2px,transparent 2px) 0 0/46px 46px,
+      linear-gradient(90deg,rgba(255,255,255,.6) 2px,transparent 2px) 0 0/46px 46px,
+      linear-gradient(rgba(60,150,170,.12) 1px,transparent 1px) 23px 23px/46px 46px,
+      radial-gradient(120% 90% at 50% 40%,#b8ecf2,#8fd3e2 70%,#79c4d6)}
+  .lane{position:absolute;left:50%;top:12%;bottom:-8%;width:clamp(14px,2.4vw,24px);margin-left:calc(clamp(14px,2.4vw,24px)/-2);
+    background:var(--lane);border-radius:3px;filter:url(#wob);opacity:.9}
+  .lane::before{content:"";position:absolute;top:0;left:50%;width:clamp(80px,12vw,130px);height:clamp(14px,2.4vw,24px);
+    transform:translateX(-50%);background:var(--lane);border-radius:3px}
+  #caustic{position:absolute;inset:0;width:100%;height:100%;mix-blend-mode:screen;filter:blur(1.2px);opacity:.85}
+  .shade{position:absolute;inset:0;pointer-events:none;background:radial-gradient(130% 100% at 50% 50%,transparent 55%,rgba(20,80,110,.22))}
+
+  header{position:fixed;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:baseline;gap:12px;
+    padding:clamp(10px,2.6vw,24px) clamp(14px,3vw,30px);z-index:3;pointer-events:none}
+  .title{font-weight:750;font-size:14px;letter-spacing:-.02em}
+  .cap{font-style:italic;font-size:12px;color:var(--mute);white-space:nowrap}
+  footer{position:fixed;left:0;right:0;bottom:clamp(8px,2.4vh,22px);text-align:center;font-size:12px;color:var(--mute);z-index:3;pointer-events:none;padding:0 14px}
+
+  /* 떠 있는 유리 */
+  #float{position:fixed;left:0;top:0;z-index:4;will-change:transform}
+  #jelly{position:relative;transform-origin:50% 50%}
+  .goo{position:absolute;inset:-200px;pointer-events:none;filter:url(#goo);opacity:.42}
+  .goo i{position:absolute;display:block;background:#effcff}
+  .glass{background:rgba(255,255,255,.16);
+    -webkit-backdrop-filter:blur(12px) saturate(1.7) brightness(1.06);backdrop-filter:blur(12px) saturate(1.7) brightness(1.06);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.95),inset 0 -1px 1px rgba(0,40,60,.12),inset 0 0 18px rgba(255,255,255,.35),
+      inset 6px 0 10px -8px rgba(120,220,255,.9),inset -6px 0 10px -8px rgba(255,190,240,.6),
+      0 18px 40px rgba(10,60,90,.22),0 2px 6px rgba(10,60,90,.14)}
+  .glass::before{content:"";position:absolute;inset:1px;border-radius:inherit;pointer-events:none;
+    background:linear-gradient(170deg,rgba(255,255,255,.55),rgba(255,255,255,0) 38%,rgba(255,255,255,0) 70%,rgba(255,255,255,.22))}
+  #dock{position:relative;display:flex;gap:4px;padding:7px;border-radius:999px;cursor:grab;touch-action:none}
+  #dock.drag{cursor:grabbing}
+  .ic{position:relative;width:44px;height:44px;border:0;border-radius:50%;background:transparent;color:var(--ink);cursor:pointer;
+    display:grid;place-items:center;transition:background .25s,transform .25s var(--spring)}
+  .ic:hover{background:rgba(255,255,255,.28)}
+  .ic:active{transform:scale(.9)}
+  .ic[aria-expanded="true"]{background:rgba(255,255,255,.5);box-shadow:inset 0 1px 0 #fff,0 2px 6px rgba(10,60,90,.15)}
+  .ic svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+  .ic:focus-visible,.grip:focus-visible,.step:focus-visible{outline:2px solid #0c4f74;outline-offset:2px}
+  .grip{width:22px;height:44px;border:0;background:transparent;cursor:grab;border-radius:12px;display:grid;place-items:center;color:var(--mute)}
+  .grip svg{width:8px;height:16px;fill:currentColor}
+
+  #card{position:absolute;border-radius:24px;padding:18px 20px 16px;display:none;flex-direction:column;gap:6px;overflow:hidden;cursor:default}
+  #card.show{display:flex}
+  #card .in{display:flex;flex-direction:column;gap:6px;height:100%;transition:opacity .25s,filter .25s}
+  #card .in.fade{opacity:0;filter:blur(3px)}
+  #card h2{font-size:clamp(17px,2.2vw,20px);font-weight:750;letter-spacing:-.03em}
+  #card p{font-size:13px;color:var(--mute);line-height:1.45}
+  .row{margin-top:auto;display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--mute)}
+  .cnt{display:flex;align-items:center;gap:6px}
+  .cnt b{min-width:2ch;text-align:center;font-size:15px;color:var(--ink);font-variant-numeric:tabular-nums}
+  .step{width:28px;height:28px;border-radius:50%;border:0;background:rgba(255,255,255,.42);color:var(--ink);font:inherit;font-size:16px;line-height:1;cursor:pointer;
+    box-shadow:inset 0 1px 0 #fff}
+  .step:hover{background:rgba(255,255,255,.65)}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  @media (prefers-reduced-motion:reduce){.ic{transition:none}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <filter id="goo"><feGaussianBlur in="SourceGraphic" stdDeviation="9" result="b"/>
+    <feColorMatrix in="b" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 22 -9"/></filter>
+  <filter id="wob" x="-40%" y="-5%" width="180%" height="110%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.012 0.03" numOctaves="2" seed="4" result="n">
+      <animate id="wobAnim" attributeName="baseFrequency" dur="9s" values="0.012 0.03;0.016 0.026;0.012 0.03" repeatCount="indefinite"/>
+    </feTurbulence>
+    <feDisplacementMap in="SourceGraphic" in2="n" scale="14" xChannelSelector="R" yChannelSelector="G"/>
+  </filter>
+</svg>
+
+<div class="pool" aria-hidden="true">
+  <div class="lane"></div>
+  <canvas id="caustic"></canvas>
+  <div class="shade"></div>
+</div>
+
+<header><div class="title">버튼 서랍</div><div class="cap">오후 네 시의 수면 — 실험 no.4</div></header>
+
+<div id="float">
+  <div id="jelly">
+    <div class="goo" aria-hidden="true"><i id="gDock"></i><i id="gCard"></i><i id="gNeck"></i></div>
+    <div id="card" class="glass" role="region" aria-live="polite" aria-labelledby="cTitle">
+      <div class="in">
+        <h2 id="cTitle"></h2>
+        <p id="cSub"></p>
+        <div class="row"><span id="cLabel"></span>
+          <span class="cnt"><button class="step" id="minus" aria-label="하나 빼기">−</button><b id="cNum">0</b><button class="step" id="plus" aria-label="하나 더하기">+</button></span>
+        </div>
+      </div>
+    </div>
+    <div id="dock" class="glass" role="toolbar" aria-label="유리 메뉴">
+      <button class="ic" data-i="0" aria-label="메뉴" aria-expanded="false"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></svg></button>
+      <button class="ic" data-i="1" aria-label="잎" aria-expanded="false"><svg viewBox="0 0 24 24"><path d="M5 19c0-8 5-14 15-14 0 10-6 15-14 15"/><path d="M5 19 13 11"/></svg></button>
+      <button class="ic" data-i="2" aria-label="메모" aria-expanded="false"><svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4M9 12h7M9 16h5"/></svg></button>
+      <button class="ic" data-i="3" aria-label="물방울" aria-expanded="false"><svg viewBox="0 0 24 24"><path d="M12 3c3.5 4.5 6 7.7 6 11a6 6 0 0 1-12 0c0-3.3 2.5-6.5 6-11z"/><path d="M9.5 15a2.6 2.6 0 0 0 2.5 2.5"/></svg></button>
+      <button class="grip" id="grip" aria-label="유리 옮기기, 화살표 키로 움직여요"><svg viewBox="0 0 8 16"><circle cx="2" cy="3" r="1.2"/><circle cx="6" cy="3" r="1.2"/><circle cx="2" cy="8" r="1.2"/><circle cx="6" cy="8" r="1.2"/><circle cx="2" cy="13" r="1.2"/><circle cx="6" cy="13" r="1.2"/></svg></button>
+    </div>
+  </div>
+</div>
+
+<footer>유리를 끌어 보거나, 아이콘을 눌러 보세요</footer>
+
+<script>
+(()=>{
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(reduce){const a=document.getElementById('wobAnim');a&&a.remove()}
+  const $=id=>document.getElementById(id);
+
+  /* ---------- 물결 빛 (저해상도로 그려서 늘림) ---------- */
+  const cv=$('caustic'),cx=cv.getContext('2d');
+  let cw=0,ch=0,img=null;
+  function sizeCaustic(){
+    const s=Math.max(5,Math.round(Math.max(innerWidth,innerHeight)/170));
+    cw=Math.ceil(innerWidth/s);ch=Math.ceil(innerHeight/s);cv.width=cw;cv.height=ch;img=cx.createImageData(cw,ch);
+  }
+  function caustic(t){
+    const d=img.data,k=.11;
+    for(let y=0;y<ch;y++)for(let x=0;x<cw;x++){
+      const u=x*k,v=y*k;
+      const a=Math.sin(u*1.3+t*.9+Math.sin(v*.8+t*.5)*1.6);
+      const b=Math.sin(v*1.1-t*.7+Math.sin(u*.9-t*.4)*1.8);
+      const c=Math.sin((u+v)*.7+t*.6+Math.sin(u*.5-v*.6+t*.3)*1.2);
+      const m=Math.abs(a+b+c)/3;
+      let l=1-m;l=l*l*l*l*l*l;
+      const i=(y*cw+x)*4;
+      d[i]=230;d[i+1]=255;d[i+2]=255;d[i+3]=Math.min(255,l*330);
+    }
+    cx.putImageData(img,0,0);
+  }
+
+  /* ---------- 유리 도크 ---------- */
+  const F=$('float'),J=$('jelly'),dock=$('dock'),card=$('card'),inner=card.querySelector('.in');
+  const gDock=$('gDock'),gCard=$('gCard'),gNeck=$('gNeck');
+  const icons=[...dock.querySelectorAll('.ic')];
+  const DATA=[
+    {t:'리도, 네 시',s:'수영장 바닥, 레인 4번 — 맑은 유리',l:'왕복',n:4},
+    {t:'떠 있는 잎 한 장',s:'플라타너스 잎이 수면 장력에 기대어 쉬는 중',l:'잎',n:1},
+    {t:'젖은 메모',s:'잉크가 번졌지만 “선크림”만은 또렷해요',l:'줄',n:3},
+    {t:'물방울 하나',s:'유리 끝에 맺혀서 떨어질 듯 말 듯',l:'방울',n:12}
+  ];
+  const counts=DATA.map(d=>d.n);
+  let open=-1,pos={x:0,y:0},placed=false,geo=null,anims=[];
+  const GAP=20,EASE='cubic-bezier(.3,1.35,.45,1)',DUR=reduce?1:620;
+
+  function dockSize(){return{w:dock.offsetWidth,h:dock.offsetHeight}}
+  function clampPos(){
+    const {w,h}=dockSize();
+    pos.x=Math.min(Math.max(8,pos.x),innerWidth-w-8);
+    pos.y=Math.min(Math.max(8,pos.y),innerHeight-h-8);
+  }
+  function placeDefault(){
+    const {w,h}=dockSize();
+    pos.x=(innerWidth-w)/2;pos.y=Math.max(innerHeight*.62,Math.min(innerHeight-h-46,innerHeight*.5+90));clampPos();placed=true;
+  }
+  function setRect(el,r){el.style.left=r.x+'px';el.style.top=r.y+'px';el.style.width=r.w+'px';el.style.height=r.h+'px'}
+  const off=200; // goo 레이어 여백 보정
+  function layout(){
+    const {w,h}=dockSize();
+    setRect(gDock,{x:off,y:off,w,h});gDock.style.borderRadius='999px';
+    const cw=Math.min(300,innerWidth-24),chh=Math.min(150,Math.max(118,innerHeight*.42));
+    let cxp=(w-cw)/2;
+    // 화면 밖으로 나가지 않게
+    const absL=pos.x+cxp;if(absL<12)cxp+=12-absL;if(absL+cw>innerWidth-12)cxp-=absL+cw-(innerWidth-12);
+    const above=pos.y-chh-GAP>8 || pos.y+h+GAP+chh>innerHeight-8;
+    const cy=above?-(chh+GAP):h+GAP;
+    geo={x:cxp,y:cy,w:cw,h:chh,above,dw:w,dh:h};
+    setRect(card,geo);setRect(gCard,{x:geo.x+off,y:geo.y+off,w:cw,h:chh});gCard.style.borderRadius='24px';
+  }
+  function iconCenter(i){const b=icons[i];return{x:b.offsetLeft+b.offsetWidth/2,y:b.offsetTop+b.offsetHeight/2}}
+  function fill(i){
+    const d=DATA[i];$('cTitle').textContent=d.t;$('cSub').textContent=d.s;$('cLabel').textContent=d.l;$('cNum').textContent=counts[i];
+  }
+  function stopAnims(){anims.forEach(a=>a.cancel());anims=[]}
+  function growFrames(i){
+    const c=iconCenter(i),gx=geo.x+geo.w/2,gy=geo.y+geo.h/2;
+    return[
+      {transform:`translate(${c.x-gx}px,${c.y-gy}px) scale(${36/geo.w},${36/geo.h})`,borderRadius:'999px'},
+      {transform:`translate(${(c.x-gx)*.35}px,${(c.y-gy)*.45}px) scale(${.55},${.7})`,borderRadius:'60px',offset:.45},
+      {transform:'none',borderRadius:'24px'}
+    ];
+  }
+  function neckFrames(i,rev){
+    const c=iconCenter(i),edge=geo.above?geo.y+geo.h-8:geo.y+8,nx=Math.min(Math.max(c.x,geo.x+30),geo.x+geo.w-30);
+    const f=[
+      {left:(c.x-16+off)+'px',top:(c.y-16+off)+'px',width:'32px',height:'32px',opacity:1},
+      {left:((c.x+nx)/2-14+off)+'px',top:((c.y+edge)/2-18+off)+'px',width:'28px',height:'36px',opacity:1,offset:.5},
+      {left:(nx-4+off)+'px',top:(edge-4+off)+'px',width:'8px',height:'8px',opacity:0}
+    ];
+    return rev?f.reverse():f;
+  }
+  function openCard(i){
+    layout();fill(i);stopAnims();
+    card.classList.add('show');gCard.style.display='block';inner.classList.add('fade');
+    const o={duration:DUR,easing:EASE,fill:'both'};
+    const f=growFrames(i);
+    anims.push(card.animate(f,o),gCard.animate(f,o),gNeck.animate(neckFrames(i),{duration:DUR*.8,easing:'ease-out',fill:'both'}));
+    setTimeout(()=>inner.classList.remove('fade'),reduce?0:DUR*.45);
+    setOpen(i);
+  }
+  function closeCard(){
+    const i=open;if(i<0)return;
+    stopAnims();inner.classList.add('fade');
+    const o={duration:reduce?1:DUR*.75,easing:'cubic-bezier(.6,0,.3,1)',fill:'both'};
+    const f=growFrames(i).reverse().map((k,n)=>({...k,offset:n===1?.55:k.offset===undefined?undefined:k.offset}));
+    f.forEach(k=>{if(k.offset===undefined)delete k.offset});
+    const a=card.animate(f,o);anims.push(a,gCard.animate(f,o),gNeck.animate(neckFrames(i,true),{duration:o.duration*.9,easing:'ease-in',fill:'both'}));
+    a.onfinish=()=>{if(open<0){card.classList.remove('show');gCard.style.display='none';stopAnims()}};
+    setOpen(-1);
+  }
+  function switchCard(i){
+    inner.classList.add('fade');
+    stopAnims();
+    const o={duration:reduce?1:520,easing:'ease-out'};
+    anims.push(card.animate([{transform:'none'},{transform:'scale(1.04,.95)'},{transform:'scale(.98,1.03)'},{transform:'none'}],o));
+    anims.push(gNeck.animate(neckFrames(i),{duration:reduce?1:480,easing:'ease-out',fill:'both'}));
+    setTimeout(()=>{fill(i);inner.classList.remove('fade')},reduce?0:200);
+    setOpen(i);
+  }
+  function setOpen(i){open=i;icons.forEach((b,n)=>b.setAttribute('aria-expanded',String(n===i)))}
+  icons.forEach((b,i)=>{
+    b.setAttribute('aria-controls','card');
+    b.addEventListener('click',e=>{
+      if(suppress){e.preventDefault();return}
+      if(open===i)closeCard();else if(open<0)openCard(i);else switchCard(i);
+    });
+  });
+  $('plus').addEventListener('click',()=>{if(open<0)return;counts[open]++;$('cNum').textContent=counts[open];kick(0,-3)});
+  $('minus').addEventListener('click',()=>{if(open<0)return;counts[open]=Math.max(0,counts[open]-1);$('cNum').textContent=counts[open];kick(0,3)});
+  addEventListener('keydown',e=>{if(e.key==='Escape'&&open>=0){const i=open;closeCard();icons[i].focus()}});
+
+  /* ---------- 끌기 + 물방울처럼 흔들림 ---------- */
+  let drag=null,suppress=false;
+  const vel={x:0,y:0},def={x:0,y:0},dv={x:0,y:0};
+  function kick(x,y){vel.x+=x*30;vel.y+=y*30}
+  dock.addEventListener('pointerdown',e=>{
+    if(e.button!==0)return;
+    drag={sx:e.clientX,sy:e.clientY,px:pos.x,py:pos.y,lx:e.clientX,ly:e.clientY,lt:performance.now(),moved:false,id:e.pointerId};
+  });
+  addEventListener('pointermove',e=>{
+    if(!drag||e.pointerId!==drag.id)return;
+    const dx=e.clientX-drag.sx,dy=e.clientY-drag.sy;
+    if(!drag.moved&&Math.hypot(dx,dy)>6){drag.moved=true;dock.classList.add('drag');try{dock.setPointerCapture(e.pointerId)}catch(_){}}
+    if(!drag.moved)return;
+    const now=performance.now(),dt=Math.max(8,now-drag.lt);
+    vel.x=vel.x*.5+((e.clientX-drag.lx)/dt*16)*.5;vel.y=vel.y*.5+((e.clientY-drag.ly)/dt*16)*.5;
+    drag.lx=e.clientX;drag.ly=e.clientY;drag.lt=now;
+    pos.x=drag.px+dx;pos.y=drag.py+dy;clampPos();
+  });
+  function endDrag(e){
+    if(!drag||(e&&e.pointerId!==drag.id))return;
+    if(drag.moved){suppress=true;setTimeout(()=>suppress=false,0);if(open>=0)relayoutOpen()}
+    dock.classList.remove('drag');drag=null;
+  }
+  addEventListener('pointerup',endDrag);addEventListener('pointercancel',endDrag);
+  function relayoutOpen(){const before=geo&&geo.above;layout();if(geo.above!==before){stopAnims();kick(0,geo.above?-6:6)}}
+  $('grip').addEventListener('keydown',e=>{
+    const m={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]}[e.key];
+    if(!m)return;e.preventDefault();const s=e.shiftKey?60:24;
+    pos.x+=m[0]*s;pos.y+=m[1]*s;clampPos();kick(m[0]*2,m[1]*2);if(open>=0)relayoutOpen();
+  });
+
+  function frame(dt){
+    // 스프링: 변형량이 속도를 따라가고, 놓으면 출렁이며 제자리로
+    const tx=Math.max(-26,Math.min(26,vel.x)),ty=Math.max(-26,Math.min(26,vel.y));
+    const k=210,c=11,s=dt/1000;
+    dv.x+=((tx-def.x)*k-dv.x*c)*s;dv.y+=((ty-def.y)*k-dv.y*c)*s;
+    def.x+=dv.x*s;def.y+=dv.y*s;
+    vel.x*=Math.pow(.86,dt/16);vel.y*=Math.pow(.86,dt/16);
+    const ax=Math.abs(def.x),ay=Math.abs(def.y);
+    const sx=1+ax*.009-ay*.005,sy=1+ay*.009-ax*.005;
+    F.style.transform=`translate(${pos.x}px,${pos.y}px)`;
+    J.style.transform=reduce?'none':`skew(${(-def.x*.5).toFixed(2)}deg,${(def.y*.15).toFixed(2)}deg) scale(${sx.toFixed(4)},${sy.toFixed(4)})`;
+  }
+
+  let last=performance.now(),acc=0;
+  function loop(t){
+    const dt=Math.min(48,t-last);last=t;
+    if(!placed)placeDefault();
+    frame(dt);
+    if(!reduce){acc+=dt;if(acc>32){caustic(t/1000);acc=0}}
+    requestAnimationFrame(loop);
+  }
+  function onResize(){sizeCaustic();caustic(performance.now()/1000);clampPos();layout()}
+  addEventListener('resize',onResize);
+  sizeCaustic();caustic(1.3);placeDefault();layout();gCard.style.display='none';
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
