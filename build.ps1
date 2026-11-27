@@ -1,4 +1,4 @@
-﻿# 서랍 묶기: components / tags.json / glossary.json / refs.json / demos 를 읽어서 index.html 안에 채워 넣는다.
+﻿# 서랍 묶기: components / tags.json / glossary.json / demos 를 읽어서 index.html 안에 채워 넣는다.
 # (파일 하나로 더블클릭해서 어디서든 열리게)
 $ErrorActionPreference = 'Stop'
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -10,9 +10,6 @@ function Read-Json($name) {
 
 # tags.json: { "조각": ["토글", ...] } — 검색용 한국어 # 태그
 $tagMap = Read-Json 'tags.json'
-# refs.json: { "조각": "보낸 참고 영상 주소" }
-$refMap = Read-Json 'refs.json'
-
 $items = @()
 foreach ($f in Get-ChildItem (Join-Path $here 'components') -Filter *.html | Sort-Object Name) {
   $html = [IO.File]::ReadAllText($f.FullName, $utf8)
@@ -27,7 +24,6 @@ foreach ($f in Get-ChildItem (Join-Path $here 'components') -Filter *.html | Sor
     desc  = $meta.desc
     added = $meta.added
     tags  = @(if ($tagMap -and $tagMap.($f.BaseName)) { $tagMap.($f.BaseName) })
-    video = $(if ($refMap) { $refMap.($f.BaseName) } else { $null })
     html  = $html
   }
 }
