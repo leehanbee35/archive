@@ -1,0 +1,188 @@
+<!doctype html>
+<!-- meta: {"name":"주름 Strip","cat":"화면","desc":"포스터들이 아코디언처럼 접힌 띠가 스크롤에 따라 펼쳐지고, 오른쪽 목록과 함께 움직여요","added":"2026-11-27"} -->
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<title>주름 스트립</title>
+<style>
+  :root{--bg:#f4f0e8;--ink:#1d1b18;--mute:#9a948a;--line:rgba(29,27,24,.12);--acc:#d4462b}
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;overflow:hidden}
+  body{background:var(--bg);color:var(--ink);display:grid;grid-template-rows:1fr auto;
+    font-family:"Pretendard Variable",Pretendard,-apple-system,"Malgun Gothic",sans-serif;letter-spacing:-.01em;
+    touch-action:none}
+  main{display:grid;grid-template-columns:minmax(120px,1fr) auto minmax(190px,1fr);gap:clamp(12px,3vw,48px);
+    padding:clamp(14px,4vh,40px) clamp(16px,3vw,40px) 0;min-height:0}
+  .left{display:flex;flex-direction:column;gap:18px;font-size:13px}
+  .who{font-weight:600;line-height:1.5}
+  .who span{color:var(--mute);font-weight:500}
+  nav{display:flex;flex-direction:column;gap:6px}
+  nav a{color:var(--ink);text-decoration:none;width:max-content;border-bottom:1px solid transparent;transition:border-color .2s}
+  nav a:hover,nav a[aria-current]{border-color:var(--ink)}
+
+  .stage{position:relative;width:min(40vw,60vh);height:100%;perspective:1500px;overflow:hidden;cursor:ns-resize;
+    -webkit-mask-image:linear-gradient(180deg,transparent,#000 14%,#000 86%,transparent);
+            mask-image:linear-gradient(180deg,transparent,#000 14%,#000 86%,transparent)}
+  .chain{position:absolute;left:50%;top:50%;width:0;height:0;transform-style:preserve-3d}
+  .pane{position:absolute;transform-style:preserve-3d;backface-visibility:visible;will-change:transform}
+  .pane svg{display:block;width:100%;height:100%;box-shadow:0 1px 0 rgba(0,0,0,.05)}
+  .pane::after{content:"";position:absolute;inset:0;pointer-events:none;
+    background:linear-gradient(180deg,rgba(255,255,255,var(--lt,0)),rgba(255,255,255,0)),rgba(20,16,10,var(--dk,0))}
+
+  .right{display:flex;flex-direction:column;justify-content:center;gap:20px;min-width:0}
+  .now .num{font-size:12px;color:var(--acc);font-weight:700;font-feature-settings:"tnum"}
+  .now h2{font-size:clamp(20px,2.6vw,34px);font-weight:700;letter-spacing:-.035em;line-height:1.15;margin-top:4px}
+  .now p{font-size:13px;color:var(--mute);margin-top:4px}
+  .now > *{transition:opacity .25s,transform .35s cubic-bezier(.2,.7,.2,1)}
+  .now.swap > *{opacity:0;transform:translateY(6px)}
+  ol{list-style:none;border-top:1px solid var(--line)}
+  ol button{all:unset;box-sizing:border-box;width:100%;display:grid;grid-template-columns:2.2em 1fr auto;align-items:center;
+    padding:6px 0;border-bottom:1px solid var(--line);font-size:13px;color:var(--mute);cursor:pointer;transition:color .2s,padding .3s}
+  ol button .n{font-feature-settings:"tnum";font-size:11px}
+  ol button .y{font-feature-settings:"tnum";font-size:12px}
+  ol button:hover{color:var(--ink)}
+  ol button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+  ol button[aria-current="true"]{color:var(--ink);font-weight:700;padding-left:8px}
+  ol button[aria-current="true"] .n{color:var(--acc)}
+
+  footer{display:flex;justify-content:space-between;gap:12px;padding:12px clamp(16px,3vw,40px) clamp(10px,2.5vh,20px);font-size:12px;color:var(--mute)}
+
+  @media (max-width:760px){
+    main{grid-template-columns:auto 1fr;gap:16px}
+    .left{position:absolute;left:16px;top:12px;z-index:2}
+    .left nav{display:none}
+    .stage{width:min(52vw,62vh)}
+    .right{grid-column:2}
+    ol{display:none}
+  }
+  @media (max-width:760px){.left .who span{display:none}}
+  @media (max-height:420px){ol button{padding:3px 0;font-size:12px}footer{padding-top:6px}}
+  @media (max-height:320px){ol{display:none}.left nav{display:none}}
+  @media (prefers-reduced-motion:reduce){.now > *{transition:none}}
+</style>
+</head>
+<body>
+<main>
+  <div class="left">
+    <p class="who">주노 아벨<br><span>큐레이터 · 서울</span></p>
+    <nav><a href="#" aria-current="page">작업</a><a href="#">소개</a><a href="#">연락</a></nav>
+  </div>
+  <div class="stage" id="stage" aria-label="접힌 포스터 띠"><div class="chain" id="chain"></div></div>
+  <div class="right">
+    <div class="now" id="now"><div class="num" id="nNum">01</div><h2 id="nTitle">들숨</h2><p id="nSub"></p></div>
+    <ol id="list"></ol>
+  </div>
+</main>
+<footer><span>© 2026 주노 아벨</span><span>스크롤하거나 목록을 눌러 보세요</span></footer>
+<script>
+(() => {
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const T = (s, x, y, size, fill, extra = '') => `<text x="${x}" y="${y}" font-size="${size}" fill="${fill}" font-weight="800" letter-spacing="-.6" ${extra}>${s}</text>`;
+  const items = [
+    { t: '들숨', y: 2026, s: '호흡에 관한 단체전', art: () => `<rect width="100" height="100" fill="#cfe3ee"/>${[38, 30, 22, 14, 7].map((r, i) => `<circle cx="50" cy="44" r="${r}" fill="none" stroke="#1d4e89" stroke-width="${1 + i * .4}"/>`).join('')}${T('들숨', 8, 92, 15, '#1d4e89')}` },
+    { t: '헬리오트로프', y: 2025, s: '보라색 식물 표본전', art: () => `<rect width="100" height="100" fill="#7a4fd0"/><circle cx="78" cy="22" r="11" fill="#ffd166"/>${T('헬리오', 7, 58, 19, '#f6efe4')}${T('트로프', 7, 80, 19, '#f6efe4')}<rect x="7" y="88" width="30" height="2" fill="#ffd166"/>` },
+    { t: '한밤의 배', y: 2025, s: '항구 사진 기록', art: () => `<rect width="100" height="100" fill="#0f1f3d"/><circle cx="70" cy="26" r="12" fill="#f4e7c5"/><circle cx="75" cy="22" r="11" fill="#0f1f3d"/><path d="M22 66h56l-8 10H30z" fill="#f4e7c5"/><path d="M50 66V34l18 26z" fill="#e85d3f"/><path d="M0 80q12-4 25 0t25 0 25 0 25 0V100H0z" fill="#1b3361"/>${T('한밤의 배', 8, 94, 10, '#f4e7c5')}` },
+    { t: '1280°', y: 2025, s: '도자기 가마 이야기', art: () => `<rect width="100" height="100" fill="#ee6a2c"/>${[0, 1, 2, 3, 4, 5].map(i => `<rect x="0" y="${62 + i * 6}" width="100" height="3" fill="#2a1408" opacity="${.15 + i * .14}"/>`).join('')}${T('1280°', 4, 52, 30, '#2a1408')}${T('가마 · 장작', 6, 16, 6, '#2a1408')}` },
+    { t: '느린 정원', y: 2024, s: '식물과 기다림', art: () => `<rect width="100" height="100" fill="#2f5d3a"/>${[[30, 40, -30], [55, 32, 20], [44, 60, -60], [70, 56, 40], [26, 70, 10]].map(([x, y, r]) => `<ellipse cx="${x}" cy="${y}" rx="15" ry="6" fill="#b9d98c" transform="rotate(${r} ${x} ${y})"/>`).join('')}${T('느린 정원', 8, 92, 11, '#f1ecd9')}` },
+    { t: '격자 연습', y: 2024, s: '모듈 그래픽 워크숍', art: () => `<rect width="100" height="100" fill="#f7f5ef"/>${Array.from({ length: 36 }, (_, k) => { const x = k % 6, y = (k / 6) | 0; return (x * y + x) % 3 === 0 ? `<rect x="${8 + x * 12}" y="${8 + y * 12}" width="11" height="11" fill="#141414"/>` : ''; }).join('')}${T('격자 연습', 8, 94, 10, '#141414')}` },
+    { t: '궤도 클럽', y: 2026, s: '밤하늘 관측 모임', art: () => `<rect width="100" height="100" fill="#111"/>${[0, 30, 60, 90, 120, 150].map(r => `<ellipse cx="50" cy="44" rx="34" ry="11" fill="none" stroke="#f2f2f2" stroke-width=".5" opacity=".6" transform="rotate(${r} 50 44)"/>`).join('')}<circle cx="50" cy="44" r="6" fill="#ff5b3a"/><circle cx="82" cy="36" r="2" fill="#7ee0ff"/><circle cx="24" cy="58" r="1.6" fill="#ffd166"/>${T('궤도 클럽', 8, 92, 12, '#f2f2f2')}` },
+    { t: '소금과 빛', y: 2024, s: '염전의 하루', art: () => `<rect width="100" height="100" fill="#ece3d2"/>${Array.from({ length: 12 }, (_, i) => `<rect x="49" y="6" width="2" height="26" fill="#e7b43b" transform="rotate(${i * 30} 50 40)"/>`).join('')}<circle cx="50" cy="40" r="14" fill="#fff"/>${T('소금과 빛', 8, 92, 11, '#5a4a2c')}` },
+    { t: '겹친 원', y: 2023, s: '색 혼합 실험', art: () => `<rect width="100" height="100" fill="#f6d3d8"/><g style="mix-blend-mode:multiply"><circle cx="38" cy="40" r="22" fill="#ff6b9a"/><circle cx="62" cy="40" r="22" fill="#5fb7ff"/><circle cx="50" cy="60" r="22" fill="#ffd23f"/></g>${T('겹친 원', 8, 95, 10, '#3b1d2b')}` },
+    { t: '북쪽 창', y: 2023, s: '오래된 집의 빛', art: () => `<rect width="100" height="100" fill="#8fa3b5"/><rect x="24" y="14" width="52" height="62" fill="#e9eef2"/><path d="M50 14v62M24 45h52" stroke="#8fa3b5" stroke-width="3"/><path d="M24 76h52l10 12H14z" fill="#6b8195"/>${T('북쪽 창', 8, 96, 9, '#1e2a35')}` },
+    { t: '종이 산', y: 2023, s: '접는 종이 조각전', art: () => `<rect width="100" height="100" fill="#efe2c8"/><path d="M0 78 28 34l18 26 16-30 38 48z" fill="#c5543a"/><path d="M28 34l6 44H0zM62 30l-4 48h42z" fill="#8f3523" opacity=".55"/>${T('종이 산', 8, 94, 11, '#3d2418')}` },
+    { t: '마지막 여름', y: 2022, s: '바닷가 영화 상영', art: () => `<defs><linearGradient id="g12" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff9a3d"/><stop offset="1" stop-color="#e2352a"/></linearGradient></defs><rect width="100" height="100" fill="url(#g12)"/><circle cx="50" cy="52" r="22" fill="#fff1c9"/>${[0, 1, 2, 3].map(i => `<rect x="20" y="${56 + i * 5}" width="60" height="${1.4 + i * .4}" fill="#e8492c"/>`).join('')}${T('마지막 여름', 8, 20, 11, '#fff1c9')}` }
+  ];
+  const N = items.length;
+  const chain = document.getElementById('chain'), stage = document.getElementById('stage'), list = document.getElementById('list');
+  const panes = items.map((it, i) => {
+    const d = document.createElement('div'); d.className = 'pane';
+    d.innerHTML = `<svg viewBox="0 0 100 100" role="img" aria-label="${it.t} 포스터" font-family="'Pretendard Variable',Pretendard,'Malgun Gothic',sans-serif">${it.art()}</svg>`;
+    chain.appendChild(d); return d;
+  });
+  const btns = items.map((it, i) => {
+    const li = document.createElement('li'), b = document.createElement('button');
+    b.innerHTML = `<span class="n">${String(i + 1).padStart(2, '0')}</span><span>${it.t}</span><span class="y">${it.y}</span>`;
+    b.onclick = () => { target = i; };
+    li.appendChild(b); list.appendChild(li); return b;
+  });
+
+  let S = 300;
+  function size() {
+    S = Math.round(Math.min(stage.clientWidth * .92, stage.clientHeight * .56));
+    panes.forEach(p => { p.style.width = p.style.height = S + 'px'; p.style.left = p.style.top = -S / 2 + 'px'; });
+    dirty = true;
+  }
+
+  const A = 74 * Math.PI / 180;                 // 접힌 각도
+  const ease = t => t * t * (3 - 2 * t);
+  let p = 0, target = 0, dirty = true, shown = -1;
+  function render() {
+    const ys = [], zs = [], th = [];
+    let y = 0, z = 0;
+    for (let i = 0; i < N; i++) {
+      const f = ease(Math.min(1, Math.abs(i - p)));
+      const a = (i % 2 ? 1 : -1) * A * f;
+      const h = S * Math.cos(a), dz = S * Math.sin(a);
+      th.push(a); ys.push(y + h / 2); zs.push(z + dz / 2);
+      y += h; z += dz;
+    }
+    const i0 = Math.max(0, Math.min(N - 1, Math.floor(p))), i1 = Math.min(N - 1, i0 + 1), fr = p - i0;
+    const ry = ys[i0] + (ys[i1] - ys[i0]) * fr, rz = zs[i0] + (zs[i1] - zs[i0]) * fr;
+    for (let i = 0; i < N; i++) {
+      const el = panes[i], a = th[i], dist = Math.abs(i - p);
+      el.style.transform = `translate3d(0,${(ys[i] - ry).toFixed(2)}px,${(zs[i] - rz).toFixed(2)}px) rotateX(${a.toFixed(4)}rad)`;
+      // 위를 보는 면은 밝게, 아래를 보는 면은 어둡게
+      const s = Math.sin(a);
+      el.style.setProperty('--dk', s < 0 ? (-s * .5).toFixed(3) : (s * .08).toFixed(3));
+      el.style.setProperty('--lt', s > 0 ? (s * .35).toFixed(3) : '0');
+      el.style.opacity = dist > 7 ? 0 : 1;
+    }
+    const cur = Math.round(p);
+    if (cur !== shown) { shown = cur; updateInfo(cur); }
+  }
+  const now = document.getElementById('now'), nNum = document.getElementById('nNum'), nTitle = document.getElementById('nTitle'), nSub = document.getElementById('nSub');
+  let swapT;
+  function updateInfo(i) {
+    btns.forEach((b, k) => b.setAttribute('aria-current', k === i ? 'true' : 'false'));
+    const set = () => { nNum.textContent = `${String(i + 1).padStart(2, '0')} / ${N}`; nTitle.textContent = items[i].t; nSub.textContent = `${items[i].s} · ${items[i].y}`; };
+    if (reduce) return set();
+    now.classList.add('swap'); clearTimeout(swapT);
+    swapT = setTimeout(() => { set(); now.classList.remove('swap'); }, 180);
+  }
+
+  /* ---------- 입력 ---------- */
+  const clamp = v => Math.max(0, Math.min(N - 1, v));
+  let snapT;
+  const snapLater = () => { clearTimeout(snapT); snapT = setTimeout(() => target = Math.round(target), 170); };
+  addEventListener('wheel', e => { e.preventDefault(); target = clamp(target + Math.max(-100, Math.min(100, e.deltaY)) / 260); snapLater(); }, { passive: false });
+  addEventListener('keydown', e => {
+    if (['ArrowDown', 'ArrowRight', 'PageDown'].includes(e.key)) { target = clamp(Math.round(target) + 1); e.preventDefault(); }
+    if (['ArrowUp', 'ArrowLeft', 'PageUp'].includes(e.key)) { target = clamp(Math.round(target) - 1); e.preventDefault(); }
+    if (e.key === 'Home') target = 0; if (e.key === 'End') target = N - 1;
+  });
+  let dragY = null, dragT = 0;
+  stage.addEventListener('pointerdown', e => { dragY = e.clientY; dragT = target; stage.setPointerCapture(e.pointerId); });
+  stage.addEventListener('pointermove', e => { if (dragY !== null) target = clamp(dragT - (e.clientY - dragY) / (S * .45)); });
+  const end = () => { if (dragY !== null) { dragY = null; target = Math.round(target); } };
+  stage.addEventListener('pointerup', end); stage.addEventListener('pointercancel', end);
+  document.querySelectorAll('nav a').forEach(a => a.addEventListener('click', e => e.preventDefault()));
+  addEventListener('resize', size);
+
+  let last = performance.now();
+  function tick(t) {
+    const dt = Math.min(.05, (t - last) / 1000); last = t;
+    const prev = p;
+    // 먼 곳으로 점프할 때도 너무 오래 걸리지 않게
+    p += (target - p) * (reduce ? 1 : 1 - Math.pow(.0025, dt));
+    if (Math.abs(target - p) < .0005) p = target;
+    if (p !== prev || dirty) { dirty = false; render(); }
+    requestAnimationFrame(tick);
+  }
+  size(); render();
+  requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>

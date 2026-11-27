@@ -1,0 +1,229 @@
+<!doctype html>
+<!-- meta: {"name":"핍 Character","cat":"화면","desc":"말랑한 하얀 캐릭터가 커서를 눈으로 따라보고, 누르면 찌그러지며 웃어요","added":"2026-11-27"} -->
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<title>핍에게 인사해요</title>
+<style>
+  :root{--bg:#efebe4;--ink:#141210;--mute:#8a8178}
+  *{box-sizing:border-box;margin:0}
+  html,body{height:100%;overflow:hidden}
+  body{display:flex;flex-direction:column;align-items:center;
+    background:radial-gradient(80% 70% at 50% 55%,#f6f3ee,var(--bg));
+    font-family:"Pretendard Variable",Pretendard,-apple-system,"Malgun Gothic",sans-serif;color:var(--ink);
+    padding:clamp(10px,4vh,48px) 16px clamp(8px,3vh,28px)}
+  h1{font-size:clamp(22px,8.5vmin,84px);font-weight:850;letter-spacing:-.05em;line-height:1;text-align:center}
+  .pip{flex:1;min-height:0;width:100%;max-width:900px;border:0;background:none;padding:0;cursor:grab;
+    touch-action:none;-webkit-tap-highlight-color:transparent;border-radius:24px}
+  .pip:active{cursor:grabbing}
+  .pip:focus-visible{outline:2px solid var(--ink);outline-offset:-6px}
+  .pip svg{width:100%;height:100%;display:block;overflow:visible}
+  .hint{font-size:clamp(11px,2.2vmin,15px);color:var(--mute);letter-spacing:-.01em}
+</style>
+</head>
+<body>
+  <h1>핍에게 인사해요.</h1>
+  <button class="pip" id="pip" aria-label="핍 누르기">
+    <svg id="svg" viewBox="0 0 600 420" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+      <defs>
+        <radialGradient id="gBody" cx="38%" cy="28%" r="78%">
+          <stop offset="0" stop-color="#ffffff"/>
+          <stop offset=".42" stop-color="#fbfaf7"/>
+          <stop offset=".8" stop-color="#e9e4db"/>
+          <stop offset="1" stop-color="#d6cec1"/>
+        </radialGradient>
+        <linearGradient id="gRim" x1="0" y1="0" x2="0" y2="1">
+          <stop offset=".55" stop-color="#c9bfb0" stop-opacity="0"/>
+          <stop offset="1" stop-color="#b9ad9b" stop-opacity=".45"/>
+        </linearGradient>
+        <radialGradient id="gBounce" cx="50%" cy="100%" r="60%">
+          <stop offset="0" stop-color="#fff" stop-opacity=".7"/>
+          <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+        </radialGradient>
+        <filter id="fBlur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="9"/></filter>
+        <filter id="fSoft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="4"/></filter>
+      </defs>
+      <ellipse id="shadow" cx="300" cy="366" rx="128" ry="17" fill="#5a4630" opacity=".26" filter="url(#fBlur)"/>
+      <g id="body">
+        <path id="shape" d="M0 -205C95 -205 142 -150 142 -86C142 -24 104 0 0 0C-104 0 -142 -24 -142 -86C-142 -150 -95 -205 0 -205Z" fill="url(#gBody)"/>
+        <path d="M0 -205C95 -205 142 -150 142 -86C142 -24 104 0 0 0C-104 0 -142 -24 -142 -86C-142 -150 -95 -205 0 -205Z" fill="url(#gRim)"/>
+        <ellipse cx="0" cy="-8" rx="90" ry="12" fill="url(#gBounce)"/>
+        <ellipse cx="-58" cy="-158" rx="36" ry="19" transform="rotate(-28 -58 -158)" fill="#fff" opacity=".95" filter="url(#fSoft)"/>
+        <circle cx="-86" cy="-128" r="5" fill="#fff"/>
+        <g id="face" transform="translate(0 -104)">
+          <ellipse class="blush" cx="-70" cy="20" rx="17" ry="9" fill="#ff9fb2" opacity="0" filter="url(#fSoft)"/>
+          <ellipse class="blush" cx="70" cy="20" rx="17" ry="9" fill="#ff9fb2" opacity="0" filter="url(#fSoft)"/>
+          <g id="eyes">
+            <g id="eyeL" transform="translate(-40 0)"><ellipse rx="9" ry="12" fill="#151311"/><circle cx="-3" cy="-5" r="2.6" fill="#fff"/></g>
+            <g id="eyeR" transform="translate(40 0)"><ellipse rx="9" ry="12" fill="#151311"/><circle cx="-3" cy="-5" r="2.6" fill="#fff"/></g>
+          </g>
+          <g id="happy" opacity="0" fill="none" stroke="#151311" stroke-width="5.5" stroke-linecap="round">
+            <path d="M-52 4Q-40 -10 -28 4"/><path d="M28 4Q40 -10 52 4"/>
+          </g>
+          <path id="mouthC" d="M-7 24Q0 29 7 24" fill="none" stroke="#151311" stroke-width="3.5" stroke-linecap="round"/>
+          <g id="mouthO" opacity="0">
+            <path d="M-12 20Q0 40 12 20Z" fill="#2a1814" stroke="#2a1814" stroke-width="3" stroke-linejoin="round"/>
+            <ellipse cx="0" cy="30" rx="5" ry="3" fill="#ff8ea3"/>
+          </g>
+        </g>
+      </g>
+      <g id="sparks" fill="#f4b740" opacity="0">
+        <path d="M0 -14L3 -3L14 0L3 3L0 14L-3 3L-14 0L-3 -3Z"/>
+        <path d="M0 -14L3 -3L14 0L3 3L0 14L-3 3L-14 0L-3 -3Z"/>
+        <path d="M0 -14L3 -3L14 0L3 3L0 14L-3 3L-14 0L-3 -3Z"/>
+      </g>
+    </svg>
+  </button>
+  <p class="hint" id="hint" aria-live="polite">눌러 보거나 살짝 끌어당겨 보세요</p>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const svg = $('svg'), btn = $('pip'), body = $('body'), shadow = $('shadow'), face = $('face');
+  const eyeL = $('eyeL'), eyeR = $('eyeR'), eyes = $('eyes'), happy = $('happy');
+  const mouthC = $('mouthC'), mouthO = $('mouthO'), sparks = $('sparks'), hint = $('hint');
+  const blush = [...document.querySelectorAll('.blush')];
+  const sparkEls = [...sparks.children];
+  const mq = matchMedia('(prefers-reduced-motion: reduce)');
+  let reduce = mq.matches; mq.addEventListener?.('change', e => reduce = e.matches);
+
+  const CX = 300, FLOOR = 362;
+  const spring = v => ({ v, vel: 0, t: v });
+  const S = { sx: spring(1), sy: spring(1), lean: spring(0), ox: spring(0), oy: spring(0) };
+  const step = (s, k, c, dt) => {
+    if (reduce) { s.v += (s.t - s.v) * Math.min(1, dt * 12); s.vel = 0; return; }
+    s.vel += (k * (s.t - s.v) - c * s.vel) * dt; s.v += s.vel * dt;
+  };
+
+  let px = CX, py = 180, hasPtr = false, hover = false, pressed = false, dragging = false;
+  let downX = 0, downY = 0, happyUntil = 0, happyStart = -9, nextBlink = 1.8, blinkT = -1;
+  let look = { x: 0, y: 0 }, eyeScale = 1, happyMix = 0;
+
+  const toSvg = e => {
+    const p = svg.createSVGPoint(); p.x = e.clientX; p.y = e.clientY;
+    const m = svg.getScreenCTM(); if (!m) return { x: CX, y: 200 };
+    const r = p.matrixTransform(m.inverse()); return { x: r.x, y: r.y };
+  };
+  const inside = (x, y) => {
+    const dx = (x - CX - S.ox.v) / 160, dy = (y - (FLOOR - 104) - S.oy.v) / 125;
+    return dx * dx + dy * dy < 1;
+  };
+
+  addEventListener('pointermove', e => {
+    const p = toSvg(e); px = p.x; py = p.y; hasPtr = true;
+    hover = inside(px, py) || pressed;
+    if (pressed) {
+      const dx = px - downX, dy = py - downY;
+      if (!dragging && Math.hypot(dx, dy) > 6) dragging = true;
+      if (dragging) {
+        const lim = (v, m) => m * Math.tanh(v / m);
+        S.ox.t = lim(dx * .45, 46); S.oy.t = lim(dy * .4, 34);
+        S.sy.t = 1 - S.oy.t / 260; S.sx.t = 1 + S.oy.t / 420;
+      }
+    }
+  });
+  document.documentElement.addEventListener('pointerleave', () => { hasPtr = false; hover = false; });
+
+  const press = () => {
+    if (pressed) return; pressed = true; dragging = false;
+    S.sy.t = .84; S.sx.t = 1.12;
+  };
+  const release = () => {
+    if (!pressed) return; pressed = false; dragging = false;
+    S.ox.t = 0; S.oy.t = 0; S.sx.t = 1; S.sy.t = 1;
+    S.sy.vel += 5.5; S.sx.vel -= 3.5;           // 튀어오르기
+    const now = performance.now() / 1000;
+    happyStart = now; happyUntil = now + 1.5;
+    hint.textContent = '핍이 기분이 좋아요';
+  };
+
+  btn.addEventListener('pointerdown', e => {
+    const p = toSvg(e); px = p.x; py = p.y; downX = px; downY = py;
+    btn.setPointerCapture?.(e.pointerId); press();
+  });
+  btn.addEventListener('pointerup', release);
+  btn.addEventListener('pointercancel', release);
+  btn.addEventListener('keydown', e => {
+    if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) { e.preventDefault(); press(); }
+  });
+  btn.addEventListener('keyup', e => {
+    if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); release(); }
+  });
+  btn.addEventListener('blur', release);
+
+  let last = performance.now();
+  function frame(nowMs) {
+    const dt = Math.min(.033, (nowMs - last) / 1000); last = nowMs;
+    const t = nowMs / 1000;
+    const isHappy = t < happyUntil;
+
+    // 숨쉬기
+    if (!pressed) {
+      const b = reduce ? 0 : Math.sin(t * 2.1) * .016;
+      S.sy.t = 1 + b; S.sx.t = 1 - b * .7;
+    }
+    const tx = hover && hasPtr ? Math.max(-9, Math.min(9, (px - CX - S.ox.v) / 14)) : 0;
+    S.lean.t = dragging ? -S.ox.v / 5 : tx;
+
+    const loose = !pressed;            // 놓은 뒤엔 젤리처럼 출렁
+    step(S.sx, 260, loose ? 9 : 22, dt); step(S.sy, 260, loose ? 9 : 22, dt);
+    step(S.lean, 120, 12, dt);
+    step(S.ox, 170, loose ? 7 : 26, dt); step(S.oy, 170, loose ? 7 : 26, dt);
+
+    const sx = S.sx.v, sy = S.sy.v, lean = S.lean.v, ox = S.ox.v, oy = S.oy.v;
+    body.setAttribute('transform',
+      `translate(${CX + ox * .35} ${FLOOR}) skewX(${-lean - ox * .12}) translate(${ox * .65} ${Math.min(0, oy) * .3}) scale(${sx} ${sy})`);
+    shadow.setAttribute('rx', 128 * sx + Math.abs(ox) * .4);
+    shadow.setAttribute('cx', CX + ox * .5);
+    shadow.setAttribute('opacity', (.26 * (1.1 - (sy - 1) * 2)).toFixed(3));
+
+    // 눈 따라보기
+    const ex = CX + ox, ey = FLOOR - 104 * sy + oy;
+    let lx = 0, ly = 0;
+    if (hasPtr) {
+      const dx = px - ex, dy = py - ey, d = Math.hypot(dx, dy) || 1, m = Math.min(1, d / 160);
+      lx = dx / d * 9 * m; ly = dy / d * 7 * m;
+    }
+    const k = Math.min(1, dt * (reduce ? 30 : 10));
+    look.x += (lx - look.x) * k; look.y += (ly - look.y) * k;
+    face.setAttribute('transform', `translate(${look.x * .9} ${-104 + look.y * .8})`);
+
+    // 깜빡임
+    if (t > nextBlink && blinkT < 0) { blinkT = t; nextBlink = t + 2.4 + Math.random() * 3.2; }
+    let lid = 1;
+    if (blinkT >= 0) { const p = (t - blinkT) / .16; lid = p < 1 ? Math.abs(1 - 2 * p) * .9 + .1 : 1; if (p >= 1) blinkT = -1; }
+    eyeScale += ((hover ? 1.28 : 1) - eyeScale) * Math.min(1, dt * 9);
+    const es = `scale(${eyeScale} ${eyeScale * lid})`;
+    eyeL.setAttribute('transform', `translate(${-40 + look.x * .3} ${look.y * .3}) ${es}`);
+    eyeR.setAttribute('transform', `translate(${40 + look.x * .3} ${look.y * .3}) ${es}`);
+
+    // 웃는 얼굴
+    happyMix += ((isHappy || pressed ? 1 : 0) - happyMix) * Math.min(1, dt * 14);
+    eyes.setAttribute('opacity', (1 - happyMix).toFixed(3));
+    happy.setAttribute('opacity', happyMix.toFixed(3));
+    mouthO.setAttribute('opacity', happyMix.toFixed(3));
+    mouthC.setAttribute('opacity', (1 - happyMix).toFixed(3));
+    blush.forEach(b => b.setAttribute('opacity', (.15 + happyMix * .75).toFixed(3)));
+    if (!isHappy && !pressed && hint.textContent !== '눌러 보거나 살짝 끌어당겨 보세요' && t > happyUntil + 1.2)
+      hint.textContent = '눌러 보거나 살짝 끌어당겨 보세요';
+
+    // 반짝이
+    const sp = (t - happyStart) / .9;
+    if (sp >= 0 && sp < 1) {
+      sparks.setAttribute('opacity', 1);
+      const spots = [[438, 140, .9], [470, 196, .55], [150, 120, .65]];
+      sparkEls.forEach((el, i) => {
+        const [x, y, s] = spots[i], q = Math.max(0, Math.min(1, sp * 1.4 - i * .15));
+        const sc = s * Math.sin(q * Math.PI), rise = reduce ? 0 : -q * 14;
+        el.setAttribute('transform', `translate(${x + ox * .3} ${y + rise}) rotate(${q * 60}) scale(${sc})`);
+      });
+    } else sparks.setAttribute('opacity', 0);
+
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

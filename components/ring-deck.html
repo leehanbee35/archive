@@ -1,0 +1,189 @@
+<!doctype html>
+<!-- meta: {"name":"링 Deck","cat":"갤러리","desc":"얇은 카드 마흔 장이 회전 명함첩처럼 고리를 이루어 돌고, 카드를 누르면 앞으로 뽑혀 나와 크게 보이는 덱","added":"2026-11-27"} -->
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<title>링 덱</title>
+<style>
+  :root{--ink:#f1ede6;--mute:#77726b;--paper:#fbfaf7;--paper2:#e6e3dc;--card-ink:#1d1b18}
+  *{box-sizing:border-box;margin:0}
+  html,body{height:100%;overflow:hidden}
+  body{background:radial-gradient(70% 55% at 50% 55%,#11100e,#000 72%);color:var(--ink);
+    font-family:"Pretendard Variable",Pretendard,-apple-system,"Malgun Gothic",sans-serif;
+    -webkit-user-select:none;user-select:none}
+  .stage{position:fixed;inset:0;cursor:grab;touch-action:none}
+  .stage.drag{cursor:grabbing}
+  .scene,.ring{position:absolute;left:50%;top:52%;transform-style:preserve-3d}
+  .ring{left:0;top:0;transition:opacity .5s}
+  .stage.focus .ring{opacity:.18}
+  .card{position:absolute;left:0;top:0;transform-style:preserve-3d;cursor:pointer}
+  .face,.back{position:absolute;inset:0;border-radius:.5em;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+  .face{background:var(--paper);color:var(--card-ink);padding:.55em;box-shadow:0 .4em 1.4em rgba(0,0,0,.35);
+    transition:transform .3s cubic-bezier(.2,.8,.2,1)}
+  .card:hover .face{transform:translateY(-10%)}
+  .back{background:linear-gradient(160deg,var(--paper2),#cfcac1);transform:rotateY(180deg)}
+  .back::after{content:"";position:absolute;left:50%;top:50%;width:1.4em;height:1.4em;margin:-.7em;border-radius:50%;border:.12em solid #a49e93}
+  .th{position:relative;height:58%;border-radius:.3em;overflow:hidden}
+  .th svg,.bth svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+  .no{margin-top:.55em;font-size:.62em;font-weight:600;opacity:.45;font-variant-numeric:tabular-nums}
+  .tt{margin-top:.25em;font-size:.9em;font-weight:700;letter-spacing:-.03em;white-space:nowrap;overflow:hidden}
+  .ln{height:.3em;border-radius:1em;background:currentColor;opacity:.12;margin-top:.45em}
+
+  .big{position:fixed;left:50%;top:50%;z-index:10;background:var(--paper);color:var(--card-ink);border-radius:.5em;padding:.55em;
+    box-shadow:0 2em 5em rgba(0,0,0,.6);transform-origin:50% 50%;cursor:pointer;
+    transition:transform .6s cubic-bezier(.2,.8,.2,1),opacity .6s}
+  .bth{position:relative;height:58%;border-radius:.3em;overflow:hidden}
+  .big .desc{margin-top:.5em;font-size:.48em;line-height:1.55;opacity:.6}
+  .ui{position:fixed;left:clamp(14px,3vw,32px);right:clamp(14px,3vw,32px);display:flex;justify-content:space-between;font-size:12px;color:var(--mute);pointer-events:none}
+  .ui b{color:var(--ink);font-weight:600}
+  .top{top:clamp(12px,3vh,26px)} .bot{bottom:clamp(12px,3vh,26px)}
+  @media (max-height:320px){.top{display:none}}
+  @media (prefers-reduced-motion:reduce){.face,.ring{transition:none}.big{transition:opacity .2s}}
+</style>
+</head>
+<body>
+<div class="stage" id="stage" tabindex="0" aria-label="카드 링. 카드를 누르면 크게 보기, Esc로 닫기">
+  <div class="scene" id="scene"><div class="ring" id="ring"></div></div>
+</div>
+<div class="ui top"><b>링 덱</b><span id="info">카드 40장</span></div>
+<div class="ui bot"><span>휠로 빠르게 · 끌어서 돌리기</span><span>눌러서 꺼내기</span></div>
+<script>
+const PAL=[['#f6c28b','#e86f51','#ffe3a3','#7a3b3f','#3d2333'],['#a8d8e8','#4f8fbf','#fff4d6','#2f5d7c','#173247'],
+  ['#f3e1c7','#d9a27a','#fffaf0','#8a5a44','#4a2f27'],['#c9e4c5','#6fa68a','#f7f3d0','#2f5e4a','#183a2e'],
+  ['#e9c6e0','#9a6fb0','#ffe9f3','#4b3670','#251a3d'],['#ffd9a0','#f29e4c','#fff2cf','#b4532a','#5c2a1c'],
+  ['#cfd8dc','#7d8e99','#f5f5f0','#3f4c56','#1f272e'],['#9fd3c7','#3e8e9e','#e8fff7','#1f5866','#0e2f38']];
+let artN=0;
+function art(seed,kind,w=200,h=160){
+  let s=seed*7919+13;const r=()=>((s=(s*16807)%2147483647)/2147483647);
+  const p=PAL[seed%PAL.length],u='r'+(++artN);
+  const lin=(id,a,b)=>`<linearGradient id="${u}${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient>`;
+  let d='',b='';
+  if(kind===0){const y=h*.6;d=lin('s',p[0],p[1]);
+    b=`<rect width="${w}" height="${h}" fill="url(#${u}s)"/><circle cx="${w*(.25+r()*.5)}" cy="${y-h*.15}" r="${h*.17}" fill="${p[2]}"/>
+    <path d="M0 ${y}Q${w*.4} ${y-h*.2} ${w*.7} ${y}T${w} ${y-h*.05}V${h}H0Z" fill="${p[3]}"/><path d="M0 ${y+h*.17}Q${w*.5} ${y} ${w} ${y+h*.2}V${h}H0Z" fill="${p[4]}"/>`}
+  else if(kind===1){const y=h*.5;d=lin('s',p[1],p[0])+lin('w',p[3],p[4]);
+    b=`<rect width="${w}" height="${h}" fill="url(#${u}s)"/><circle cx="${w*(.3+r()*.4)}" cy="${y-h*.08}" r="${h*.14}" fill="${p[2]}"/><rect y="${y}" width="${w}" height="${h-y}" fill="url(#${u}w)"/>`;
+    for(let k=0;k<5;k++)b+=`<path d="M0 ${y+6+k*k*4.5}q${w/8} -4 ${w/4} 0t${w/4} 0t${w/4} 0t${w/4} 0" stroke="${p[2]}" stroke-opacity=".3" stroke-width="2" fill="none"/>`}
+  else if(kind===2){d=lin('b',p[0],p[1]);const cx=w*(.4+r()*.2);
+    b=`<rect width="${w}" height="${h}" fill="url(#${u}b)"/><circle cx="${cx}" cy="${h*.45}" r="${h*.2}" fill="${p[4]}"/>
+    <path d="M${cx-h*.45} ${h}C${cx-h*.43} ${h*.78} ${cx-h*.22} ${h*.68} ${cx} ${h*.68}S${cx+h*.43} ${h*.78} ${cx+h*.45} ${h}Z" fill="${p[4]}"/>`}
+  else if(kind===3){d=lin('b',p[2],p[0]);const cx=w/2;b=`<rect width="${w}" height="${h}" fill="url(#${u}b)"/>`;
+    for(let k=0;k<7;k++)b+=`<ellipse cx="${cx}" cy="${h*.38}" rx="${h*.07}" ry="${h*.22}" fill="${k%2?p[3]:p[4]}" transform="rotate(${-60+k*20} ${cx} ${h*.66})"/>`;
+    b+=`<path d="M${cx-h*.18} ${h*.64}H${cx+h*.18}L${cx+h*.13} ${h*.92}H${cx-h*.13}Z" fill="${p[1]}"/>`}
+  else{d=lin('b',p[3],p[4]);b=`<rect width="${w}" height="${h}" fill="url(#${u}b)"/>`;
+    for(let k=0;k<3;k++)b+=`<circle cx="${w*(.2+r()*.6)}" cy="${h*(.2+r()*.6)}" r="${h*(.2+r()*.2)}" fill="${p[k]}" opacity=".75" style="mix-blend-mode:screen"/>`}
+  return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs>${d}</defs>${b}</svg>`;
+}
+
+const WORDS=['바다','정원','오후','초상','언덕','유리','모래','호수','숲길','노을','창가','소나기','들판','등대','안개','물결','꽃밭','골목','새벽','겨울'];
+const DESC=['오래 머물고 싶은 장면을 모은 카드입니다.','빛이 가장 부드러운 시간에 담았어요.','색과 형태만 남긴 작은 기록.','다음 장으로 넘기기 전 잠시 멈춰 보세요.'];
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const N=40,STEP=360/N;
+const stage=document.getElementById('stage'),scene=document.getElementById('scene'),ring=document.getElementById('ring');
+const data=Array.from({length:N},(_,i)=>({no:String(i+1).padStart(2,'0'),word:WORDS[i%WORDS.length],seed:i*3+1,kind:i%5}));
+const cards=data.map((c,i)=>{
+  const el=document.createElement('div');el.className='card';el.dataset.i=i;
+  el.innerHTML=`<div class="face"><div class="th">${art(c.seed,c.kind)}</div><div class="no">No. ${c.no}</div><div class="tt">${c.word}</div><div class="ln" style="width:70%"></div></div><div class="back"></div>`;
+  ring.appendChild(el);return el;
+});
+
+let R,W,H;
+function layout(){
+  const vw=innerWidth,vh=innerHeight;
+  R=Math.min(vw*.36,vh*.62);W=Math.max(34,2*Math.PI*R/N*.95);H=W*1.45;
+  stage.style.perspective=Math.round(R*3)+'px';
+  scene.style.transform=`translateY(${-H*.15}px) rotateX(-30deg)`;
+  cards.forEach((el,i)=>Object.assign(el.style,{width:W+'px',height:H+'px',marginLeft:-W/2+'px',marginTop:-H/2+'px',fontSize:(W/9)+'px',
+    transform:`rotateY(${i*STEP}deg) translateZ(${R}px) rotateY(-52deg)`}));
+}
+
+let rot=0,boost=0,drag=null,open=null,prev=performance.now(),lastInput=-1e9;
+const BASE=reduce?0:.08;
+function tick(now){
+  const dt=Math.min(3,(now-prev)/16.67);prev=now;
+  if(!drag&&!open){
+    rot+=(BASE+boost)*dt;
+    boost*=Math.pow(reduce?.5:.965,dt);if(Math.abs(boost)<.002)boost=0;
+  }
+  ring.style.transform=`rotateY(${(-rot).toFixed(3)}deg)`;
+  requestAnimationFrame(tick);
+}
+const clamp=(v,a)=>Math.max(-a,Math.min(a,v));
+const degPerPx=()=>180/(Math.PI*R)*.8;
+
+stage.addEventListener('pointerdown',e=>{
+  if(e.button||open)return;
+  drag={x:e.clientX,lx:e.clientX,lt:e.timeStamp,r:rot,moved:0,card:e.target.closest('.card')};
+  boost=0;stage.setPointerCapture(e.pointerId);stage.classList.add('drag');
+});
+stage.addEventListener('pointermove',e=>{
+  if(!drag)return;
+  const dx=e.clientX-drag.x;drag.moved=Math.max(drag.moved,Math.abs(dx));
+  rot=drag.r-dx*degPerPx();
+  const dt=Math.max(1,e.timeStamp-drag.lt);
+  boost=clamp(boost*.3-(e.clientX-drag.lx)*degPerPx()/(dt/16.67)*.7,10);
+  drag.lx=e.clientX;drag.lt=e.timeStamp;
+});
+function endDrag(e){
+  if(!drag)return;stage.classList.remove('drag');
+  const c=drag.card,moved=drag.moved;
+  if(moved<6){boost=0;if(c)pull(+c.dataset.i)}
+  else if(reduce||e.timeStamp-drag.lt>90)boost=0;
+  drag=null;
+}
+stage.addEventListener('pointerup',endDrag);
+stage.addEventListener('pointercancel',endDrag);
+stage.addEventListener('wheel',e=>{
+  e.preventDefault();if(open)return;
+  const d=Math.abs(e.deltaX)>Math.abs(e.deltaY)?e.deltaX:e.deltaY;
+  boost=clamp(boost+d*(e.deltaMode?.3:.008),reduce?3:9);
+},{passive:false});
+addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&open){close();return}
+  if(open)return;
+  if(e.key==='ArrowRight'||e.key==='ArrowDown'){e.preventDefault();boost=clamp(boost+1.2,9)}
+  else if(e.key==='ArrowLeft'||e.key==='ArrowUp'){e.preventDefault();boost=clamp(boost-1.2,9)}
+});
+
+function startXf(el,BW,BH){
+  const r=el.getBoundingClientRect();
+  const dx=r.left+r.width/2-innerWidth/2,dy=r.top+r.height/2-innerHeight/2;
+  return `translate(-50%,-50%) translate(${dx}px,${dy}px) scale(${(r.height/BH).toFixed(4)}) rotateY(-40deg)`;
+}
+function pull(i){
+  if(open)return;
+  const el=cards[i],c=data[i];
+  const BH=Math.min(innerHeight*.74,innerWidth*.62*1.45),BW=BH/1.45;
+  const big=document.createElement('div');big.className='big';
+  Object.assign(big.style,{width:BW+'px',height:BH+'px',fontSize:(BW/9)+'px',transform:startXf(el,BW,BH)});
+  big.innerHTML=`<div class="bth">${art(c.seed,c.kind)}</div><div class="no">No. ${c.no}</div><div class="tt">${c.word}</div><div class="desc">${DESC[i%DESC.length]}</div>`;
+  big.addEventListener('click',close);
+  document.body.appendChild(big);
+  el.style.visibility='hidden';stage.classList.add('focus');
+  open={i,big,BW,BH,t:performance.now()};
+  document.getElementById('info').textContent=`No. ${c.no} · ${c.word}`;
+  big.getBoundingClientRect();
+  requestAnimationFrame(()=>{big.style.transform='translate(-50%,-50%)'});
+}
+function close(){
+  if(!open)return;
+  const {i,big,BW,BH}=open,el=cards[i];
+  el.style.visibility='';
+  big.style.transform=startXf(el,BW,BH);
+  el.style.visibility='hidden';
+  stage.classList.remove('focus');
+  let done=false;
+  const fin=()=>{if(done)return;done=true;big.remove();el.style.visibility='';open=null;
+    document.getElementById('info').textContent='카드 40장'};
+  big.addEventListener('transitionend',e=>{if(e.propertyName==='transform')fin()});
+  setTimeout(fin,reduce?250:800);
+  open.closing=true;
+}
+stage.addEventListener('click',()=>{if(open&&!open.closing&&performance.now()-open.t>350)close()});
+addEventListener('resize',()=>{layout();if(open)close()});
+layout();requestAnimationFrame(tick);
+</script>
+</body>
+</html>

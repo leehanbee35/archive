@@ -1,0 +1,161 @@
+<!doctype html>
+<!-- meta: {"name":"액자 Corridor","cat":"화면","desc":"어두운 복도 벽에 빛나는 액자들이 걸려 있고, 스크롤하면 그 사이를 걸어 들어가요","added":"2026-11-27"} -->
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<title>액자 복도</title>
+<style>
+  :root{--ink:#f4f1ff;--mute:rgba(244,241,255,.55)}
+  *{box-sizing:border-box;margin:0}
+  html,body{height:100%;overflow:hidden}
+  body{background:#000;color:var(--ink);touch-action:none;
+    font-family:"Pretendard Variable",Pretendard,-apple-system,"Malgun Gothic",sans-serif}
+  .stage{position:fixed;inset:0;overflow:hidden;perspective-origin:50% 50%}
+  .world{position:absolute;left:50%;top:50%;width:0;height:0;transform-style:preserve-3d}
+  .world > *{position:absolute;transform-style:preserve-3d;backface-visibility:visible}
+  .surf{background-color:#07070b}
+  .wall{background-image:
+      repeating-linear-gradient(90deg,rgba(255,255,255,.05) 0 1px,transparent 1px 260px),
+      linear-gradient(180deg,#0c0b12,#07070b 40%,#06060a 60%,#0d0b14)}
+  .flat{background-image:
+      repeating-linear-gradient(0deg,rgba(255,255,255,.05) 0 1px,transparent 1px 260px),
+      repeating-linear-gradient(90deg,rgba(255,255,255,.03) 0 1px,transparent 1px 33.333%),
+      linear-gradient(90deg,#0a0910,#06060a 50%,#0a0910)}
+  .floor{background-color:#09080e}
+  .frame{border-radius:3px;padding:6%;background:#0d0c12;
+    box-shadow:0 0 0 1px var(--c),0 0 18px var(--c),0 0 46px var(--c2);will-change:transform,opacity}
+  .frame i{display:block;width:100%;height:100%;border-radius:1px}
+  .fog{position:fixed;inset:0;pointer-events:none;
+    background:radial-gradient(closest-side at 50% 50%,#000 0,rgba(0,0,0,.92) 9%,rgba(0,0,0,.45) 26%,rgba(0,0,0,0) 62%),
+      radial-gradient(120% 120% at 50% 50%,transparent 55%,rgba(0,0,0,.7))}
+  .copy{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;pointer-events:none;text-align:center;padding:16px}
+  .copy h1{font-size:clamp(26px,6vw,64px);font-weight:700;letter-spacing:-.04em;line-height:1.05;
+    text-shadow:0 0 24px rgba(180,140,255,.55),0 0 2px rgba(255,255,255,.6)}
+  .copy p{font-size:clamp(12px,1.5vw,15px);color:var(--mute);letter-spacing:-.01em}
+  .meter{position:fixed;left:50%;bottom:clamp(10px,3.5vh,28px);transform:translateX(-50%);
+    font-size:12px;color:var(--mute);font-feature-settings:"tnum";letter-spacing:.02em;pointer-events:none}
+  @media (prefers-reduced-motion:reduce){.frame{will-change:auto}}
+</style>
+</head>
+<body>
+<div class="stage" id="stage"><div class="world" id="world"></div></div>
+<div class="fog"></div>
+<div class="copy"><h1>계속 걸어요</h1><p>스크롤하면 복도가 이어져요</p></div>
+<div class="meter" id="meter">0 m</div>
+<script>
+(() => {
+  const stage = document.getElementById('stage'), world = document.getElementById('world'), meter = document.getElementById('meter');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const LEN = 5200;                          // 복도 길이
+  let NEAR = 300, HW, HH, FS, frames = [], surfaces = [];
+
+  const neon = [
+    ['#ff3df2', 'rgba(255,61,242,.35)'], ['#3df5ff', 'rgba(61,245,255,.32)'], ['#b48cff', 'rgba(180,140,255,.38)'],
+    ['#ffd23d', 'rgba(255,210,61,.3)'], ['#3dff8b', 'rgba(61,255,139,.28)'], ['#ff6a3d', 'rgba(255,106,61,.32)']
+  ];
+  const pick = a => a[Math.floor(Math.random() * a.length)];
+  // 추상 그림: CSS 그라디언트 조합
+  const arts = [
+    (a, b) => `radial-gradient(circle at 50% 42%,${a} 0 22%,transparent 23%),linear-gradient(180deg,#140a2a,${b})`,
+    (a, b) => `repeating-linear-gradient(135deg,${a} 0 8%,transparent 8% 16%),linear-gradient(0deg,#0b0714,${b})`,
+    (a, b) => `radial-gradient(ellipse 30% 46% at 50% 60%,${a} 0 60%,transparent 62%),radial-gradient(circle at 50% 24%,${a} 0 12%,transparent 13%),linear-gradient(160deg,${b},#05030c)`,
+    (a, b) => `conic-gradient(from 45deg at 50% 50%,${a},${b},#120724,${a})`,
+    (a, b) => `linear-gradient(90deg,transparent 46%,${a} 46% 54%,transparent 54%),linear-gradient(0deg,transparent 46%,${a} 46% 54%,transparent 54%),radial-gradient(circle,${b},#07030f 70%)`,
+    (a, b) => `radial-gradient(circle at 30% 70%,${a} 0 18%,transparent 19%),radial-gradient(circle at 68% 34%,${b} 0 24%,transparent 25%),linear-gradient(200deg,#1a0c33,#04020a)`,
+    (a, b) => `repeating-radial-gradient(circle at 50% 50%,${a} 0 4%,transparent 4% 10%),#0a0514`
+  ];
+
+  function el(cls, css) { const d = document.createElement('div'); d.className = cls; Object.assign(d.style, css); world.appendChild(d); return d; }
+
+  function build() {
+    world.innerHTML = ''; frames = []; surfaces = [];
+    const w = innerWidth, h = innerHeight;
+    HW = w / 2; HH = h / 2;
+    const persp = Math.max(w, h) * .62;
+    stage.style.perspective = persp + 'px';
+    NEAR = persp * .55;                      // 카메라 뒤로 넘어가지 않는 경계
+    FS = Math.max(56, Math.min(HW, HH) * .5);
+    const zc = -LEN / 2;
+    const add = (cls, width, height, t, bg) => surfaces.push({ el: el('surf ' + cls, {
+      width: width + 'px', height: height + 'px', left: -width / 2 + 'px', top: -height / 2 + 'px', transform: t }), bg });
+    add('wall', LEN, HH * 2, `translate3d(${-HW}px,0,${zc}px) rotateY(90deg)`, 'x-');
+    add('wall', LEN, HH * 2, `translate3d(${HW}px,0,${zc}px) rotateY(-90deg)`, 'x+');
+    add('flat floor', HW * 2, LEN, `translate3d(0,${HH}px,${zc}px) rotateX(90deg)`, 'y+');
+    add('flat', HW * 2, LEN, `translate3d(0,${-HH}px,${zc}px) rotateX(-90deg)`, 'y-');
+
+    // 액자 배치: 벽마다 일정 간격 + 약간의 흔들림
+    const gap = Math.max(FS * 1.9, LEN / 24);
+    const count = Math.floor(LEN / gap);
+    for (let i = 0; i < count; i++) {
+      for (const side of ['L', 'R', 'F', 'C']) {
+        if ((side === 'F' || side === 'C') && Math.random() < .45) continue;
+        const [c, c2] = pick(neon), [a2] = pick(neon);
+        const tall = Math.random() < .5;
+        const fw = FS * (tall ? .72 : 1) * (side === 'F' || side === 'C' ? .8 : 1), fh = FS * (tall ? 1 : .74) * (side === 'F' || side === 'C' ? .8 : 1);
+        const d = el('frame', { width: fw + 'px', height: fh + 'px', left: -fw / 2 + 'px', top: -fh / 2 + 'px' });
+        d.style.setProperty('--c', c); d.style.setProperty('--c2', c2);
+        const art = document.createElement('i'); art.style.background = pick(arts)(c, a2); d.appendChild(art);
+        let x = 0, y = 0, rot = '';
+        const jit = (Math.random() - .5);
+        if (side === 'L') { x = -HW + 2; y = jit * HH * .5; rot = 'rotateY(90deg)'; }
+        if (side === 'R') { x = HW - 2; y = jit * HH * .5; rot = 'rotateY(-90deg)'; }
+        if (side === 'F') { y = HH - 2; x = jit * HW * .9; rot = 'rotateX(90deg)'; }
+        if (side === 'C') { y = -HH + 2; x = jit * HW * .9; rot = 'rotateX(-90deg)'; }
+        const z0 = -(i * gap + (side === 'R' || side === 'C' ? gap / 2 : 0) + Math.random() * gap * .25);
+        frames.push({ el: d, x, y, rot, z0 });
+      }
+    }
+    place();
+  }
+
+  let dist = 0, vel = 0, target = reduce ? 0 : 60;
+  function place() {
+    const m = ((dist % 260) + 260) % 260;
+    for (const s of surfaces) {
+      if (s.bg === 'x-') s.el.style.backgroundPosition = `${-m}px 0`;
+      if (s.bg === 'x+') s.el.style.backgroundPosition = `${m}px 0`;
+      if (s.bg === 'y+') s.el.style.backgroundPosition = `0 ${m}px`;
+      if (s.bg === 'y-') s.el.style.backgroundPosition = `0 ${-m}px`;
+    }
+    for (const f of frames) {
+      // z: 멀리(-LEN+NEAR)에서 카메라 쪽(NEAR)까지 순환
+      const z = ((f.z0 + dist) % LEN + LEN) % LEN - (LEN - NEAR);
+      let o = 1;
+      const far = z + (LEN - NEAR);          // 0이면 가장 먼 곳
+      if (far < 900) o = far / 900;
+      const fadeN = NEAR * .6;
+      if (z > NEAR - fadeN) o = Math.min(o, Math.max(0, (NEAR - z) / fadeN));
+      f.el.style.opacity = o.toFixed(3);
+      f.el.style.transform = `translate3d(${f.x}px,${f.y}px,${z}px) ${f.rot}`;
+    }
+    meter.textContent = Math.max(0, Math.round(dist / 100)) + ' m';
+  }
+
+  addEventListener('wheel', e => { e.preventDefault(); vel += Math.max(-80, Math.min(80, e.deltaY)) * (reduce ? 6 : 9); }, { passive: false });
+  addEventListener('keydown', e => {
+    if (['ArrowUp', 'ArrowRight', ' ', 'PageDown'].includes(e.key)) { vel += 900; e.preventDefault(); }
+    if (['ArrowDown', 'ArrowLeft', 'PageUp'].includes(e.key)) { vel -= 900; e.preventDefault(); }
+  });
+  let ty = null;
+  addEventListener('pointerdown', e => { ty = e.clientY; });
+  addEventListener('pointermove', e => { if (ty === null) return; vel += (ty - e.clientY) * 30; ty = e.clientY; });
+  addEventListener('pointerup', () => ty = null); addEventListener('pointercancel', () => ty = null);
+  let rt; addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(build, 120); });
+
+  let last = performance.now();
+  function tick(now) {
+    const dt = Math.min(.05, (now - last) / 1000); last = now;
+    vel *= Math.pow(.08, dt);                       // 관성
+    vel = Math.max(-6000, Math.min(6000, vel));
+    const step = (target + vel) * dt;
+    if (Math.abs(step) > .01) { dist += step; place(); }
+    requestAnimationFrame(tick);
+  }
+  build();
+  requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>

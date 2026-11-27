@@ -1,0 +1,210 @@
+<!doctype html>
+<!-- meta: {"name":"물결 Gallery","cat":"갤러리","desc":"가로로 늘어선 넓은 패널이 물결처럼 휘어지고, 끌거나 스크롤하면 그 물결이 패널을 따라 흘러가는 갤러리","added":"2026-11-27"} -->
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<title>물결 갤러리</title>
+<style>
+  :root{--bg:#000;--ink:#f4f1ec;--mute:#77746f}
+  *{box-sizing:border-box;margin:0}
+  html,body{height:100%}
+  body{background:var(--bg);color:var(--ink);overflow:hidden;font-family:"Pretendard Variable",Pretendard,-apple-system,"Malgun Gothic",sans-serif;
+    -webkit-user-select:none;user-select:none}
+  .scene{position:absolute;inset:0;perspective:900px;cursor:grab;outline:none;touch-action:pan-y}
+  .scene.drag{cursor:grabbing}
+  .row{position:absolute;left:50%;top:50%;transform-style:preserve-3d}
+  .s{position:absolute;left:0;top:0;width:var(--sw);height:var(--ph);margin:calc(var(--ph) / -2) 0 0 calc(var(--sw) / -2);
+    background-size:var(--pw) var(--ph);background-repeat:no-repeat;will-change:transform}
+  .s::before,.s::after{content:"";position:absolute;inset:0;pointer-events:none}
+  .s::before{background:#fff;opacity:var(--hi,0)}
+  .s::after{background:#000;opacity:var(--lo,0)}
+  .s.first{border-radius:10px 0 0 10px}.s.last{border-radius:0 10px 10px 0}
+  .s.first::before,.s.first::after{border-radius:inherit}.s.last::before,.s.last::after{border-radius:inherit}
+  .lab,.go{position:absolute;left:0;top:0;pointer-events:none;color:#fff;text-shadow:0 1px 10px rgba(0,0,0,.35);white-space:nowrap}
+  .lab{font-size:clamp(11px,calc(var(--pw) * .042),16px);font-weight:600;letter-spacing:-.01em;transform-origin:0 100%}
+  .go{font-size:clamp(13px,calc(var(--pw) * .05),19px);transform-origin:100% 100%}
+  .go span{display:inline-block;opacity:0;transform:translateX(-8px);transition:opacity .3s,transform .4s cubic-bezier(.3,1.4,.5,1)}
+  .go.on span{opacity:1;transform:none}
+  .ui{position:absolute;left:18px;right:18px;bottom:14px;display:flex;justify-content:space-between;align-items:center;pointer-events:none}
+  .ui p{font-size:11px;color:var(--mute)}
+  .ui div{display:flex;gap:6px;pointer-events:auto}
+  .ui button{width:30px;height:30px;border-radius:50%;border:1px solid #333;background:#101010;color:var(--ink);font:inherit;font-size:14px;cursor:pointer}
+  .ui button:hover{background:#222}
+  .ui button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+  @media (max-height:300px){.ui{bottom:6px}.ui p{display:none}}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+  <div class="scene" id="scene" tabindex="0" aria-label="물결 갤러리, 좌우 화살표로 이동"><div class="row" id="row"></div></div>
+  <div class="ui"><p>끌거나 스크롤해 보세요</p><div><button id="prev" aria-label="이전">←</button><button id="next" aria-label="다음">→</button></div></div>
+<script>
+  const SV = s => `url("data:image/svg+xml,${encodeURIComponent(s)}")`;
+  const head = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 200" preserveAspectRatio="xMidYMid slice">`;
+  function rng(s){ return () => (s = (s * 16807) % 2147483647) / 2147483647; }
+
+  function orbit(seed, bg, cols){
+    const r = rng(seed);
+    let s = head + `<defs><linearGradient id="b" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${bg[0]}"/><stop offset="1" stop-color="${bg[1]}"/></linearGradient>
+      <filter id="f" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="14"/></filter>`;
+    cols.forEach((c, i) => s += `<radialGradient id="g${i}" cx=".35" cy=".3" r=".75"><stop offset="0" stop-color="#fff"/><stop offset=".35" stop-color="${c}"/><stop offset="1" stop-color="${c}" stop-opacity=".75"/></radialGradient>`);
+    s += `</defs><rect width="300" height="200" fill="url(#b)"/><circle cx="220" cy="40" r="70" fill="${cols[0]}" opacity=".4" filter="url(#f)"/>`;
+    for (let i = 0; i < 3; i++) s += `<ellipse cx="150" cy="105" rx="${70 + i * 34}" ry="${24 + i * 13}" transform="rotate(-14 150 105)" fill="none" stroke="#fff" stroke-opacity=".45" stroke-width=".8"/>`;
+    for (let i = 0; i < 6; i++) {
+      const a = r() * 6.28, k = 70 + (i % 3) * 34, x = 150 + Math.cos(a) * k, y = 105 + Math.sin(a) * (24 + (i % 3) * 13) - Math.cos(a) * k * .25, R = 8 + r() * 22;
+      s += `<ellipse cx="${x}" cy="${y + R * .9}" rx="${R}" ry="${R * .25}" fill="#000" opacity=".12" filter="url(#f)"/><circle cx="${x}" cy="${y}" r="${R}" fill="url(#g${i % cols.length})"/>`;
+    }
+    return s + `</svg>`;
+  }
+  function silk(seed, bg, cols){
+    const r = rng(seed);
+    let s = head + `<defs><linearGradient id="b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${bg[0]}"/><stop offset="1" stop-color="${bg[1]}"/></linearGradient>
+      <filter id="f"><feGaussianBlur stdDeviation="3"/></filter><filter id="h"><feGaussianBlur stdDeviation=".8"/></filter></defs>
+      <rect width="300" height="200" fill="url(#b)"/>`;
+    for (let i = 0; i < 16; i++) {
+      const y = 20 + i * 11 + r() * 6, a = 20 + r() * 30, c = cols[i % cols.length];
+      s += `<path d="M-20 ${y} C 60 ${y - a}, 120 ${y + a}, 180 ${y} S 280 ${y - a * .8}, 330 ${y}" fill="none" stroke="${c}" stroke-width="${10 + r() * 14}" stroke-opacity=".5" filter="url(#f)"/>`;
+      s += `<path d="M-20 ${y - 4} C 60 ${y - a - 4}, 120 ${y + a - 4}, 180 ${y - 4} S 280 ${y - a * .8 - 4}, 330 ${y - 4}" fill="none" stroke="#fff" stroke-width="1.2" stroke-opacity=".35" filter="url(#h)"/>`;
+    }
+    return s + `</svg>`;
+  }
+  function agate(seed, bg, cols){
+    const r = rng(seed);
+    let s = head + `<defs><filter id="d" x="-10%" y="-10%" width="120%" height="120%"><feTurbulence type="fractalNoise" baseFrequency=".012 .02" numOctaves="3" seed="${seed % 97}"/>
+      <feDisplacementMap in="SourceGraphic" scale="38"/><feGaussianBlur stdDeviation=".5"/></filter></defs>
+      <rect width="300" height="200" fill="${bg[0]}"/><g filter="url(#d)">`;
+    const cx = 120 + r() * 60, cy = 90 + r() * 30;
+    for (let i = 26; i > 0; i--) {
+      const c = i % 2 ? cols[Math.floor(i / 2) % cols.length] : bg[1];
+      s += `<ellipse cx="${cx}" cy="${cy}" rx="${i * 9}" ry="${i * 6.2}" fill="${c}"/>`;
+    }
+    return s + `</g></svg>`;
+  }
+
+  const ART = [
+    { n:'파스텔 궤도', bg:SV(orbit(11, ['#e9dff5', '#f8dccb'], ['#f4a9c0', '#a9c7f4', '#f6d38c', '#b8e3cf'])) },
+    { n:'비단 물결',   bg:SV(silk(23, ['#1d1b3a', '#c8899a'], ['#f2c6d0', '#e88fa6', '#a58bd6', '#ffe2cf'])) },
+    { n:'마노 결',     bg:SV(agate(37, ['#3b2219', '#f3e3d2'], ['#c9764f', '#e9b88f', '#8b4630', '#f6d7b5', '#a86b54'])) },
+    { n:'유리 구슬',   bg:SV(orbit(41, ['#d6efe9', '#e4e6fb'], ['#8ed3c0', '#f3b3c6', '#c7b6f2'])) },
+    { n:'새벽 비단',   bg:SV(silk(53, ['#0e2a33', '#e6c7a0'], ['#9fd3d0', '#f0d6b0', '#6fa6b4', '#fff1dd'])) },
+    { n:'청자 결',     bg:SV(agate(67, ['#11302e', '#d9efe6'], ['#6fa79b', '#a8d4c5', '#2f6d67', '#e5f4ee'])) },
+    { n:'노을 궤도',   bg:SV(orbit(79, ['#f7cdb6', '#c6a6d8'], ['#ff9f7a', '#ffd88c', '#e87fa0'])) }
+  ];
+  const NP = 12, NS = 10;
+  const row = document.getElementById('row'), scene = document.getElementById('scene');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const panels = [];
+  for (let i = 0; i < NP; i++) {
+    const a = ART[i % ART.length], slices = [];
+    for (let k = 0; k < NS; k++) {
+      const el = document.createElement('div');
+      el.className = 's' + (k === 0 ? ' first' : k === NS - 1 ? ' last' : '');
+      el.style.backgroundImage = a.bg; el.dataset.p = i;
+      row.appendChild(el); slices.push(el);
+    }
+    const lab = document.createElement('div'); lab.className = 'lab'; lab.textContent = a.n;
+    const go = document.createElement('div'); go.className = 'go'; go.innerHTML = '<span>→</span>';
+    row.append(lab, go);
+    panels.push({ slices, lab, go });
+  }
+
+  let PW = 400, PH = 266, GAP = 18, S = 418, SW = 40, A = 60, LAM = 700, L = 5000;
+  function size(){
+    const sw = innerWidth, sh = innerHeight;
+    PW = Math.max(120, Math.min(sw * .46, sh * .6 * 1.5)); PH = PW / 1.5;
+    GAP = Math.max(10, PW * .045); S = PW + GAP; SW = PW / NS; L = NP * S;
+    A = PW * .17; LAM = PW * 1.8;
+    const st = document.body.style;
+    st.setProperty('--pw', PW + 'px'); st.setProperty('--ph', PH + 'px'); st.setProperty('--sw', (SW + .6) + 'px');
+    panels.forEach(p => p.slices.forEach((el, k) => el.style.backgroundPosition = `${-k * SW}px 0`));
+  }
+  addEventListener('resize', size);
+
+  let off = 0, vel = 0, target = null, phase = 0, hover = -1;
+  const K = () => Math.PI * 2 / LAM;
+  const wz = x => A * Math.sin(x * K() - phase);
+  const slope = x => A * K() * Math.cos(x * K() - phase);
+  const mod = (v, m) => ((v % m) + m) % m;
+
+  function render(){
+    panels.forEach((p, i) => {
+      const c = mod(i * S - off + L / 2, L) - L / 2, left = c - PW / 2;
+      const hidden = Math.abs(c) > innerWidth / 2 + PW * 1.2;
+      p.slices.forEach((el, k) => {
+        if (hidden) { el.style.visibility = 'hidden'; return; }
+        el.style.visibility = '';
+        const x = left + (k + .5) * SW, s = slope(x), ry = -Math.atan(s);
+        el.style.transform = `translate3d(${x}px,0,${wz(x)}px) rotateY(${ry}rad) scaleX(${1 / Math.cos(ry)})`;
+        el.style.setProperty('--lo', Math.max(0, s * .5).toFixed(3));
+        el.style.setProperty('--hi', Math.max(0, -s * .22).toFixed(3));
+      });
+      p.lab.style.visibility = p.go.style.visibility = hidden ? 'hidden' : '';
+      if (hidden) return;
+      const lx = left + PW * .05, rx = left + PW * .95, y = PH / 2 - PH * .07;
+      p.lab.style.transform = `translate3d(${lx}px,${y}px,${wz(lx) + 1}px) rotateY(${-Math.atan(slope(lx))}rad) translateY(-100%)`;
+      p.go.style.transform = `translate3d(${rx}px,${y}px,${wz(rx) + 1}px) rotateY(${-Math.atan(slope(rx))}rad) translate(-100%,-100%)`;
+      p.go.classList.toggle('on', hover === i);
+    });
+  }
+
+  let idleAt = performance.now(), prevT = performance.now(), dragging = false, wheelAt = 0;
+  const poke = () => { idleAt = performance.now(); };
+  const nearest = () => Math.round(off / S) * S;
+  function tick(now){
+    const dt = Math.min(1 / 30, (now - prevT) / 1000); prevT = now;
+    const before = off;
+    if (!dragging) {
+      if (target !== null) {
+        if (reduce) { off = target; vel = 0; target = null; }
+        else { vel += (120 * (target - off) - 20 * vel) * dt; off += vel * dt; if (Math.abs(target - off) < .3 && Math.abs(vel) < 2) { off = target; vel = 0; target = null; } }
+      } else if (Math.abs(vel) > 1) { off += vel * dt; vel *= Math.pow(.06, dt); if (Math.abs(vel) < 60 && !reduce) target = nearest(); }
+      else if (!reduce && now - idleAt > 4000) off += PW * .07 * dt;
+      else if (now - wheelAt > 220 && now - idleAt < 4000 && Math.abs(off - nearest()) > .5) target = nearest();
+    }
+    if (!reduce) phase += dt * .55 + (off - before) * K() * .6;
+    render();
+    requestAnimationFrame(tick);
+  }
+
+  let lx = 0, lt = 0, sx = 0, moved = false;
+  scene.addEventListener('pointerdown', e => {
+    dragging = true; moved = false; lx = sx = e.clientX; lt = performance.now(); vel = 0; target = null;
+    scene.classList.add('drag'); poke();
+  });
+  scene.addEventListener('pointermove', e => {
+    const p = e.target.dataset && e.target.dataset.p; hover = p !== undefined ? +p : -1;
+    if (!dragging) return;
+    if (!moved && Math.abs(e.clientX - sx) > 4) { moved = true; scene.setPointerCapture(e.pointerId); }
+    const now = performance.now(), dx = e.clientX - lx;
+    off -= dx * 1.1; vel = -dx * 1.1 / Math.max(.008, (now - lt) / 1000); lx = e.clientX; lt = now; poke();
+  });
+  scene.addEventListener('pointerleave', () => { if (!dragging) hover = -1; });
+  const end = () => {
+    if (!dragging) return;
+    dragging = false; scene.classList.remove('drag');
+    if (performance.now() - lt > 80) vel = 0;
+    vel = Math.max(-4000, Math.min(4000, vel));
+    if (reduce || Math.abs(vel) < 60) target = nearest();
+    poke();
+  };
+  scene.addEventListener('pointerup', end); scene.addEventListener('pointercancel', end);
+  scene.addEventListener('wheel', e => {
+    e.preventDefault(); target = null; vel = 0;
+    off += (Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY) * .9;
+    wheelAt = performance.now(); poke();
+  }, { passive:false });
+  const step = d => { target = (target !== null ? Math.round(target / S) * S : nearest()) + d * S; vel = 0; poke(); };
+  addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight') { step(1); e.preventDefault(); }
+    if (e.key === 'ArrowLeft') { step(-1); e.preventDefault(); }
+  });
+  document.getElementById('prev').onclick = () => step(-1);
+  document.getElementById('next').onclick = () => step(1);
+
+  size(); render(); requestAnimationFrame(tick);
+</script>
+</body>
+</html>

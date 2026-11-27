@@ -1,0 +1,197 @@
+<!doctype html>
+<!-- meta: {"name":"기울기 Stack","cat":"갤러리","desc":"가운데 카드는 반듯하게, 양옆 카드는 비스듬히 겹쳐 쌓여 한 칸씩 부드럽게 넘어가는 커버플로 갤러리","added":"2026-11-27"} -->
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<title>기울기 스택</title>
+<style>
+  :root{--bg:#f4f2ee;--ink:#2b2723;--mute:#958e85;--line:#ddd7ce}
+  *{box-sizing:border-box;margin:0}
+  html,body{height:100%}
+  body{background:var(--bg);color:var(--ink);overflow:hidden;display:flex;flex-direction:column;
+    font-family:"Pretendard Variable",Pretendard,-apple-system,"Malgun Gothic",sans-serif;-webkit-user-select:none;user-select:none}
+  .stage{flex:1;min-height:0;position:relative;perspective:1200px;cursor:grab;outline:none;touch-action:pan-y}
+  .stage.drag{cursor:grabbing}
+  .stage:focus-visible{box-shadow:inset 0 0 0 2px var(--line)}
+  .card{position:absolute;left:50%;top:50%;width:var(--w);height:var(--h);margin:calc(var(--h) / -2) 0 0 calc(var(--w) / -2);
+    border-radius:16px;overflow:hidden;background:#e9e4dc;will-change:transform,opacity;
+    box-shadow:0 22px 44px -18px rgba(70,52,35,.42),0 4px 10px rgba(70,52,35,.08)}
+  .card svg{display:block;width:100%;height:100%;pointer-events:none}
+  .card::after{content:"";position:absolute;inset:0;background:var(--bg);opacity:var(--fog,0);pointer-events:none}
+  .foot{flex:none;display:flex;flex-direction:column;align-items:center;gap:9px;padding:6px 0 16px}
+  .title{font-size:14px;font-weight:600;letter-spacing:-.01em;min-height:1.3em}
+  .title span{color:var(--mute);font-weight:500;font-feature-settings:"tnum";margin-left:6px}
+  .nav{display:flex;align-items:center;gap:14px}
+  .arrow{width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:#fbfaf8;color:var(--ink);
+    font:inherit;font-size:15px;line-height:1;cursor:pointer;display:grid;place-items:center;transition:background .2s,transform .2s}
+  .arrow:hover{background:#fff;transform:translateY(-1px)}
+  .arrow:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+  .dots{display:flex;gap:7px}
+  .dot{width:6px;height:6px;padding:0;border:0;border-radius:99px;background:#cfc8bd;cursor:pointer;transition:width .35s cubic-bezier(.3,1.3,.5,1),background .3s}
+  .dot.on{width:18px;background:var(--ink)}
+  @media (max-height:320px){.title{display:none}.foot{padding:4px 0 10px;gap:0}}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+  <div class="stage" id="stage" tabindex="0" aria-label="꽃 사진 갤러리, 좌우 화살표로 넘기기"></div>
+  <div class="foot">
+    <p class="title" id="title"></p>
+    <div class="nav">
+      <button class="arrow" id="prev" aria-label="이전">‹</button>
+      <div class="dots" id="dots"></div>
+      <button class="arrow" id="next" aria-label="다음">›</button>
+    </div>
+  </div>
+<script>
+  const FL = [
+    { n:'작약',       p:['#f8e8e6','#efd6cc','#fde0e5','#e48ba3','#f3cf6a','#93ab86'] },
+    { n:'수국',       p:['#e6ecf5','#d6dcee','#dfe6fb','#8f9fde','#f4f0d8','#89a596'] },
+    { n:'튤립',       p:['#f6efe2','#f0dcc5','#ffe3d2','#ef8f73','#f1c35b','#8ea77a'] },
+    { n:'라넌큘러스', p:['#f3ece9','#e9dbe2','#fbe6ef','#cf86ad','#f6dc8c','#9aae8c'] },
+    { n:'코스모스',   p:['#eef0e6','#dfe6d4','#fbe1ee','#df7fa9','#f2c64e','#86a578'] },
+    { n:'아네모네',   p:['#ecebf2','#dcd8e8','#f4f0ff','#a597d8','#3d3550','#93a99a'] },
+    { n:'목련',       p:['#f5efe8','#ead9d2','#fff4f1','#e7b4ba','#e7d59b','#9aa88c'] },
+    { n:'벚꽃',       p:['#eef1f6','#e3dde8','#fff0f4','#eaa3bb','#f5d27b','#a3b08f'] }
+  ];
+  const N = FL.length;
+  const stage = document.getElementById('stage'), dotsEl = document.getElementById('dots'), title = document.getElementById('title');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function rng(s){ return () => (s = (s * 16807) % 2147483647) / 2147483647; }
+  function art(i, f){
+    const r = rng(i * 977 + 31), id = 'a' + i, [b1, b2, p1, p2, c, l] = f.p;
+    let s = `<svg viewBox="0 0 300 400" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs>
+      <linearGradient id="${id}b" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stop-color="${b1}"/><stop offset="1" stop-color="${b2}"/></linearGradient>
+      <radialGradient id="${id}p" cx=".5" cy=".95" r=".95"><stop offset="0" stop-color="${p2}"/><stop offset=".7" stop-color="${p1}"/><stop offset="1" stop-color="#fff"/></radialGradient>
+      <filter id="${id}s" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="20"/></filter>
+      <filter id="${id}e"><feGaussianBlur stdDeviation=".8"/></filter>
+      <filter id="${id}g"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="2" seed="${i + 3}"/><feColorMatrix values="0 0 0 0 .35 0 0 0 0 .28 0 0 0 0 .2 0 0 0 .55 0"/></filter>
+    </defs><rect width="300" height="400" fill="url(#${id}b)"/>`;
+    [p1, b1, l, p2].forEach((col, k) => {
+      s += `<circle cx="${r() * 300}" cy="${r() * 400}" r="${60 + r() * 70}" fill="${col}" opacity="${k === 3 ? .18 : .4}" filter="url(#${id}s)"/>`;
+    });
+    const heads = [{ x:150 + (r() - .5) * 60, y:150 + r() * 40, R:74 }];
+    if (r() > .3) heads.push({ x:60 + r() * 30, y:250 + r() * 50, R:38 });
+    if (r() > .4) heads.push({ x:225 + r() * 40, y:240 + r() * 70, R:32 });
+    heads.forEach(h => {
+      const bx = h.x + (r() - .5) * 90;
+      s += `<path d="M${h.x} ${h.y} Q${bx} ${(h.y + 400) / 2} ${h.x + (r() - .5) * 50} 410" stroke="${l}" stroke-width="${h.R / 16}" fill="none" stroke-linecap="round" opacity=".85"/>`;
+      s += `<ellipse cx="${(h.x + bx) / 2}" cy="${(h.y + 400) / 2 + 20}" rx="${h.R * .18}" ry="${h.R * .5}" fill="${l}" opacity=".7" transform="rotate(${(r() - .5) * 90} ${(h.x + bx) / 2} ${(h.y + 400) / 2 + 20})"/>`;
+    });
+    heads.forEach(h => {
+      const n = 5 + Math.floor(r() * 4), rot = r() * 60;
+      s += `<g transform="translate(${h.x} ${h.y})" filter="url(#${id}e)">`;
+      for (const [rr, off, op] of [[h.R, 0, .95], [h.R * .62, 180 / n, 1]])
+        for (let j = 0; j < n; j++)
+          s += `<ellipse cx="0" cy="${-rr * .55}" rx="${rr * .36}" ry="${rr * .6}" transform="rotate(${j * 360 / n + rot + off})" fill="url(#${id}p)" stroke="${p2}" stroke-opacity=".22" opacity="${op}"/>`;
+      s += `<circle r="${h.R * .17}" fill="${c}"/>`;
+      for (let j = 0; j < 7; j++) { const a = r() * 6.28, d = h.R * .1 * r(); s += `<circle cx="${Math.cos(a) * d}" cy="${Math.sin(a) * d}" r="${1 + r() * 1.6}" fill="#fff" opacity=".6"/>`; }
+      s += `</g>`;
+    });
+    return s + `<rect width="300" height="400" filter="url(#${id}g)" opacity=".22"/></svg>`;
+  }
+
+  const cards = FL.map((f, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.innerHTML = art(i, f); el.setAttribute('aria-label', f.n);
+    el.addEventListener('click', () => { if (!moved) go(i); });
+    stage.appendChild(el);
+    const d = document.createElement('button');
+    d.className = 'dot'; d.setAttribute('aria-label', `${i + 1}번째 사진`);
+    d.addEventListener('click', () => go(i));
+    dotsEl.appendChild(d);
+    return el;
+  });
+  const dots = [...dotsEl.children];
+
+  let W = 200, H = 260;
+  function size(){
+    const sw = stage.clientWidth, sh = stage.clientHeight;
+    H = Math.max(80, Math.min(sh * .84, sw * .44 / .75)); W = H * .75;
+    document.body.style.setProperty('--w', W + 'px'); document.body.style.setProperty('--h', H + 'px');
+  }
+  addEventListener('resize', () => { size(); render(); });
+
+  let pos = 0, vel = 0, target = 0, dir = 1, last = -1;
+  function render(){
+    cards.forEach((el, i) => {
+      const d = i - pos, ad = Math.abs(d), a = Math.max(-1, Math.min(1, d)), far = Math.sign(d) * Math.max(ad - 1, 0);
+      const x = a * W * .64 + far * W * .2, z = -Math.abs(a) * W * .42 - Math.abs(far) * W * .14;
+      el.style.transform = `translate3d(${x}px,0,${z}px) rotateY(${-a * 45}deg)`;
+      el.style.zIndex = 100 - Math.round(ad * 10);
+      el.style.opacity = Math.max(0, 1 - Math.max(ad - 2.5, 0) * .6);
+      el.style.setProperty('--fog', Math.min(.75, Math.max(0, ad - .6) * .22).toFixed(3));
+    });
+    const cur = Math.max(0, Math.min(N - 1, Math.round(pos)));
+    if (cur !== last) {
+      last = cur;
+      dots.forEach((d, i) => d.classList.toggle('on', i === cur));
+      title.innerHTML = `${FL[cur].n}<span>${cur + 1} / ${N}</span>`;
+    }
+  }
+  function go(i){ target = Math.max(0, Math.min(N - 1, i)); poke(); if (reduce) { pos = target; vel = 0; render(); } }
+
+  let prevT = performance.now(), dragging = false;
+  function tick(now){
+    const dt = Math.min(1 / 30, (now - prevT) / 1000); prevT = now;
+    if (!dragging && !reduce) {
+      vel += (190 * (target - pos) - 21 * vel) * dt; pos += vel * dt;
+      if (Math.abs(target - pos) < .0005 && Math.abs(vel) < .001) { pos = target; vel = 0; }
+    }
+    render();
+    if (!reduce && now - idleAt > 4200 && !dragging) {
+      if (target + dir > N - 1 || target + dir < 0) dir = -dir;
+      go(target + dir); idleAt = now - 1000;
+    }
+    requestAnimationFrame(tick);
+  }
+  let idleAt = performance.now();
+  const poke = () => { idleAt = performance.now(); };
+
+  // 드래그
+  let sx = 0, sp = 0, lx = 0, lt = 0, flick = 0, moved = false;
+  stage.addEventListener('pointerdown', e => {
+    dragging = true; moved = false; sx = lx = e.clientX; sp = pos; lt = performance.now(); flick = 0;
+    stage.classList.add("drag"); poke();
+  });
+  stage.addEventListener('pointermove', e => {
+    if (!dragging) return;
+    if (!moved && Math.abs(e.clientX - sx) > 4) { moved = true; stage.setPointerCapture(e.pointerId); }
+    const now = performance.now();
+    flick = (e.clientX - lx) / Math.max(1, now - lt); lx = e.clientX; lt = now;
+    let p = sp - (e.clientX - sx) / (W * .64);
+    if (p < 0) p *= .35; if (p > N - 1) p = N - 1 + (p - N + 1) * .35;
+    pos = p; poke();
+  });
+  const end = () => {
+    if (!dragging) return;
+    dragging = false; stage.classList.remove('drag');
+    target = Math.max(0, Math.min(N - 1, Math.round(pos - flick * 1.2))); vel = 0;
+    if (reduce) pos = target;
+    setTimeout(() => moved = false, 0); poke();
+  };
+  stage.addEventListener('pointerup', end); stage.addEventListener('pointercancel', end);
+
+  // 휠
+  let acc = 0, lock = 0;
+  stage.addEventListener('wheel', e => {
+    e.preventDefault(); poke();
+    const now = performance.now(); if (now < lock) return;
+    acc += Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+    if (Math.abs(acc) > 40) { go(target + Math.sign(acc)); acc = 0; lock = now + 320; }
+  }, { passive:false });
+
+  addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight') { go(target + 1); e.preventDefault(); }
+    if (e.key === 'ArrowLeft') { go(target - 1); e.preventDefault(); }
+  });
+  document.getElementById('prev').onclick = () => go(target - 1);
+  document.getElementById('next').onclick = () => go(target + 1);
+
+  size(); go(2); pos = 2; render(); requestAnimationFrame(tick);
+</script>
+</body>
+</html>

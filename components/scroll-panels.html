@@ -1,0 +1,196 @@
+<!doctype html>
+<!-- meta: {"name":"스크롤 3D Panels","cat":"갤러리","desc":"스크롤하면 나란한 세 장의 카드가 병풍처럼 접혔다가 자리를 바꾸고 다시 펼쳐지는 3D 패널","added":"2026-11-27"} -->
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<title>스크롤 3D 패널</title>
+<style>
+  :root{--bg:#000;--ink:#f3efe7;--mute:#85817a}
+  *{box-sizing:border-box;margin:0}
+  html,body{height:100%;overflow:hidden}
+  body{background:var(--bg);color:var(--ink);font-family:"Pretendard Variable",Pretendard,-apple-system,"Malgun Gothic",sans-serif;
+    -webkit-user-select:none;user-select:none}
+  .scroller{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;outline:none;scrollbar-width:none}
+  .scroller::-webkit-scrollbar{display:none}
+  .track{height:460%;position:relative}
+  .sticky{position:sticky;top:0;height:100vh;overflow:hidden;perspective:1100px;cursor:grab;touch-action:pan-y}
+  .sticky.drag{cursor:grabbing}
+  .stage{position:absolute;left:50%;top:50%;transform-style:preserve-3d}
+  .card{position:absolute;left:0;top:0;width:var(--w);height:var(--h);margin:calc(var(--h) / -2) 0 0 calc(var(--w) / -2);
+    border-radius:12px;overflow:hidden;background:#2a2420;will-change:transform;box-shadow:0 30px 60px -25px rgba(0,0,0,.9)}
+  .card svg{display:block;width:100%;height:100%}
+  .card::after{content:"";position:absolute;inset:0;background:#000;opacity:var(--dk,0);pointer-events:none}
+  .lab{position:absolute;left:12px;bottom:10px;font-size:clamp(10px,calc(var(--w) * .055),14px);font-weight:600;letter-spacing:-.01em;
+    color:#fff;text-shadow:0 1px 8px rgba(0,0,0,.35)}
+  .hint{position:absolute;left:50%;bottom:34px;transform:translateX(-50%);font-size:12px;color:var(--mute);
+    display:flex;flex-direction:column;align-items:center;gap:4px;transition:opacity .4s;pointer-events:none}
+  .hint i{font-style:normal;animation:bob 1.6s ease-in-out infinite}
+  @keyframes bob{50%{transform:translateY(4px)}}
+  .bar{position:absolute;left:50%;bottom:18px;width:min(160px,40%);height:2px;margin-left:max(-80px,-20%);background:#2a2a2a;border-radius:2px;overflow:hidden}
+  .bar i{display:block;height:100%;width:100%;background:var(--ink);transform-origin:left;transform:scaleX(0)}
+  .btns{position:absolute;right:14px;bottom:10px;display:flex;gap:6px}
+  .btns button{width:28px;height:28px;border-radius:50%;border:1px solid #333;background:#111;color:var(--ink);font:inherit;font-size:12px;cursor:pointer}
+  .btns button:hover{background:#222}
+  .btns button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+  @media (max-height:300px){.hint{bottom:26px}.hint b{display:none}}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+  <div class="scroller" id="sc" tabindex="0" aria-label="스크롤하면 패널이 접히고 바뀝니다">
+    <div class="track">
+      <div class="sticky" id="sticky">
+        <div class="stage" id="stage"></div>
+        <div class="hint" id="hint"><b>스크롤해 보세요</b><i>↓</i></div>
+        <div class="bar"><i id="bar"></i></div>
+        <div class="btns"><button id="up" aria-label="이전 단계">↑</button><button id="down" aria-label="다음 단계">↓</button></div>
+      </div>
+    </div>
+  </div>
+<script>
+  const ROOMS = [
+    { n:'햇살 거실', wall:['#f2d9b8','#d9a978'], floor:'#a8714a', sofa:'#e9e0cf', acc:'#c25e3c', light:'#fff4dc' },
+    { n:'아침 부엌', wall:['#f4e6cc','#d8b98c'], floor:'#8e6a4c', sofa:'#7d9273', acc:'#e6a243', light:'#fffaea' },
+    { n:'오후 침실', wall:['#f0cfb6','#c98d6d'], floor:'#8a5640', sofa:'#f3e7dc', acc:'#9b6b8a', light:'#ffe9cf' }
+  ];
+  const sc = document.getElementById('sc'), sticky = document.getElementById('sticky'), stage = document.getElementById('stage');
+  const bar = document.getElementById('bar'), hint = document.getElementById('hint');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function rng(s){ return () => (s = (s * 16807) % 2147483647) / 2147483647; }
+
+  function art(i, o){
+    const r = rng(i * 311 + 7), id = 'p' + i, wx = 18 + r() * 30;
+    let s = `<svg viewBox="0 0 160 110" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs>
+      <linearGradient id="${id}w" x1="0" y1="0" x2="1" y2=".8"><stop offset="0" stop-color="${o.wall[0]}"/><stop offset="1" stop-color="${o.wall[1]}"/></linearGradient>
+      <linearGradient id="${id}l" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${o.light}" stop-opacity=".85"/><stop offset="1" stop-color="${o.light}" stop-opacity="0"/></linearGradient>
+      <linearGradient id="${id}k" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#cfe0ea"/><stop offset="1" stop-color="#fbeed4"/></linearGradient>
+      <filter id="${id}s" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="4"/></filter>
+      <filter id="${id}e"><feGaussianBlur stdDeviation=".45"/></filter>
+      <filter id="${id}g"><feTurbulence type="fractalNoise" baseFrequency="1.1" numOctaves="2" seed="${i + 2}"/><feColorMatrix values="0 0 0 0 .35 0 0 0 0 .25 0 0 0 0 .15 0 0 0 .6 0"/></filter></defs>
+      <rect width="160" height="110" fill="url(#${id}w)"/>
+      <g filter="url(#${id}e)"><rect x="${wx}" y="12" width="34" height="46" rx="2" fill="url(#${id}k)"/>
+      <path d="M${wx + 17} 12v46M${wx} 34h34" stroke="${o.wall[1]}" stroke-width="2"/></g>`;
+    // 창으로 비스듬히 들어오는 햇살
+    for (let j = 0; j < 3; j++) {
+      const x = wx + 40 + j * 14;
+      s += `<polygon points="${x},10 ${x + 9},10 ${x + 52},92 ${x + 34},92" fill="url(#${id}l)" opacity="${.55 - j * .12}" filter="url(#${id}s)"/>`;
+    }
+    s += `<rect y="80" width="160" height="30" fill="${o.floor}"/>
+      <ellipse cx="90" cy="96" rx="52" ry="8" fill="${o.acc}" opacity=".35" filter="url(#${id}e)"/>
+      <g filter="url(#${id}e)">`;
+    if (i === 1) {
+      s += `<rect x="62" y="58" width="84" height="22" fill="${o.sofa}"/><rect x="62" y="56" width="84" height="4" fill="#efe5d2"/>
+        <rect x="74" y="44" width="12" height="12" rx="6" fill="${o.acc}"/><rect x="96" y="48" width="6" height="8" fill="#fff" opacity=".8"/>`;
+    } else if (i === 2) {
+      s += `<rect x="58" y="62" width="94" height="20" rx="4" fill="${o.sofa}"/><rect x="58" y="52" width="16" height="30" rx="3" fill="${o.sofa}" opacity=".9"/>
+        <rect x="76" y="56" width="24" height="9" rx="4" fill="#fff" opacity=".7"/><rect x="104" y="60" width="44" height="8" rx="3" fill="${o.acc}" opacity=".7"/>`;
+    } else {
+      s += `<rect x="60" y="60" width="74" height="20" rx="6" fill="${o.sofa}"/><rect x="56" y="54" width="82" height="12" rx="6" fill="${o.sofa}" opacity=".92"/>
+        <circle cx="72" cy="58" r="5" fill="${o.acc}"/>`;
+    }
+    const px = 140 + r() * 10;
+    s += `<path d="M${px - 6} 80 l2 -11 h8 l2 11z" fill="${o.acc}"/>`;
+    for (let j = 0; j < 6; j++) s += `<ellipse cx="${px + (r() - .5) * 16}" cy="${58 - r() * 16}" rx="3" ry="10" fill="#6c8a5c" transform="rotate(${(r() - .5) * 70} ${px} 68)"/>`;
+    const hx = 92 + r() * 20;
+    s += `<g fill="rgba(54,34,24,.72)"><circle cx="${hx}" cy="44" r="4.5"/><path d="M${hx - 8} 51 Q${hx} 46 ${hx + 8} 51 L${hx + 9} 64 H${hx - 9}Z"/></g></g>
+      <rect width="160" height="110" filter="url(#${id}g)" opacity=".22"/></svg>`;
+    return s;
+  }
+
+  const cards = ROOMS.map((o, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.innerHTML = art(i, o) + `<span class="lab">${o.n}</span>`;
+    stage.appendChild(el); return el;
+  });
+
+  let W = 300, H = 200, G = 14;
+  function size(){
+    const sw = sticky.clientWidth, sh = sticky.clientHeight;
+    G = Math.max(8, sw * .014);
+    W = Math.max(60, Math.min((sw * .92 - 2 * G) / 3, sh * .58 * 1.45)); H = W / 1.45;
+    document.body.style.setProperty('--w', W + 'px'); document.body.style.setProperty('--h', H + 'px');
+  }
+  addEventListener('resize', size);
+
+  const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+  const ease = t => t * t * (3 - 2 * t);
+  const seg = (p, a, b) => ease(clamp((p - a) / (b - a)));
+  // 슬롯 0=왼쪽, 1=가운데, 2=오른쪽. 바깥 카드는 가운데 카드 모서리를 경첩 삼아 앞으로 접힌다
+  function slot(s, th){
+    if (s === 1) return { x:0, z:0, ry:0 };
+    const k = s === 0 ? -1 : 1;
+    return { x:k * (W / 2 + G + W / 2 * Math.cos(th)), z:W / 2 * Math.sin(th), ry:-k * th };
+  }
+  const lerp = (a, b, t) => a + (b - a) * t;
+
+  let sp = 0;
+  function render(p){
+    const fold = seg(p, .08, .32) - seg(p, .62, .88), th = fold * 72 * Math.PI / 180;
+    const t = seg(p, .34, .6), swing = Math.sin(p * Math.PI * 2) * 10;
+    stage.style.transform = `translateZ(${-fold * W * .35}px) rotateY(${swing}deg)`;
+    cards.forEach((el, j) => {
+      const a = slot(j, th), b = slot((j + 1) % 3, th), wrapping = j === 2;
+      const bump = Math.sin(Math.PI * t);
+      const x = lerp(a.x, b.x, t), ry = lerp(a.ry, b.ry, t);
+      const z = lerp(a.z, b.z, t) + (wrapping ? -bump * W * 1.1 : bump * W * .12);
+      const spin = wrapping ? bump * 25 : -bump * 8;
+      el.style.transform = `translate3d(${x}px,0,${z}px) rotateY(${ry}rad) rotateY(${spin}deg)`;
+      el.style.setProperty('--dk', clamp(Math.abs(ry) * .25 + (wrapping ? bump * .5 : 0), 0, .7).toFixed(3));
+    });
+    bar.style.transform = `scaleX(${p})`;
+    hint.style.opacity = p > .02 ? 0 : 1;
+  }
+
+  const prog = () => { const m = sc.scrollHeight - sc.clientHeight; return m > 0 ? clamp(sc.scrollTop / m) : 0; };
+  let idleAt = performance.now(), autoDir = 1, pauseUntil = 0, prevT = performance.now(), autoPos = null;
+  const poke = () => { idleAt = performance.now(); autoPos = null; };
+  ['wheel', 'pointerdown', 'keydown', 'touchstart'].forEach(ev => addEventListener(ev, poke, { passive:true }));
+
+  function tick(now){
+    const dt = Math.min(1 / 30, (now - prevT) / 1000); prevT = now;
+    if (!reduce && !dragging && now - idleAt > 5000 && now > pauseUntil) {
+      const m = sc.scrollHeight - sc.clientHeight;
+      if (autoPos === null) autoPos = sc.scrollTop;
+      autoPos += autoDir * m / 16 * dt;
+      if (autoPos >= m || autoPos <= 0) { autoPos = clamp(autoPos, 0, m); autoDir = -autoDir; pauseUntil = now + 2200; }
+      sc.scrollTop = autoPos;
+    }
+    const p = prog();
+    sp = reduce ? p : sp + (p - sp) * (1 - Math.pow(.0005, dt));
+    render(sp);
+    requestAnimationFrame(tick);
+  }
+
+  // 드래그로도 스크롤
+  let dragging = false, ly = 0, sy = 0;
+  sticky.addEventListener('pointerdown', e => {
+    if (e.pointerType !== 'mouse' || e.target.closest('button')) return;
+    dragging = true; ly = sy = e.clientY; sticky.classList.add('drag');
+  });
+  addEventListener('pointermove', e => {
+    if (!dragging) return;
+    if (Math.abs(e.clientY - sy) > 4 && !sticky.hasPointerCapture(e.pointerId)) sticky.setPointerCapture(e.pointerId);
+    sc.scrollTop -= (e.clientY - ly) * 2.4; ly = e.clientY; poke();
+  });
+  const end = () => { dragging = false; sticky.classList.remove('drag'); };
+  addEventListener('pointerup', end); addEventListener('pointercancel', end);
+
+  const STOPS = [0, .2, .47, .75, 1];
+  function stepTo(d){
+    const p = prog(), m = sc.scrollHeight - sc.clientHeight;
+    const next = d > 0 ? STOPS.find(s => s > p + .01) : [...STOPS].reverse().find(s => s < p - .01);
+    if (next !== undefined) sc.scrollTo({ top:next * m, behavior:reduce ? 'auto' : 'smooth' });
+  }
+  addEventListener('keydown', e => {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowRight') { stepTo(1); e.preventDefault(); }
+    if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') { stepTo(-1); e.preventDefault(); }
+  });
+  document.getElementById('up').onclick = () => { poke(); stepTo(-1); };
+  document.getElementById('down').onclick = () => { poke(); stepTo(1); };
+
+  size(); sc.focus({ preventScroll:true }); requestAnimationFrame(tick);
+</script>
+</body>
+</html>

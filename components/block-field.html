@@ -1,0 +1,155 @@
+<!doctype html>
+<!-- meta: {"name":"블록 들판 Field","cat":"배경","desc":"아이소메트릭 블록들이 커서 근처에서 솟아오르며 보랏빛으로 물들어요","added":"2026-11-27"} -->
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<title>블록 들판</title>
+<style>
+  :root{--bg:#0d0d10;--ink:#ece8f4;--mute:#77727f}
+  *{box-sizing:border-box;margin:0}
+  html,body{height:100%;overflow:hidden;background:var(--bg)}
+  body{font-family:"Pretendard Variable",Pretendard,-apple-system,"Malgun Gothic",sans-serif;color:var(--ink)}
+  canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
+  .tag{position:fixed;left:50%;bottom:clamp(10px,3vh,26px);transform:translateX(-50%);
+    font-size:clamp(11px,1.7vmin,14px);color:var(--mute);letter-spacing:-.01em;pointer-events:none;white-space:nowrap;
+    padding:6px 12px;border-radius:999px;background:rgba(13,13,16,.7)}
+</style>
+</head>
+<body>
+  <canvas id="c" aria-label="커서를 따라 솟아오르는 블록 들판" role="img"></canvas>
+  <p class="tag">커서를 움직여 블록을 깨워 보세요</p>
+<script>
+(() => {
+  const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+  const mq = matchMedia('(prefers-reduced-motion: reduce)');
+  let reduce = mq.matches; mq.addEventListener?.('change', e => reduce = e.matches);
+
+  let W, H, dpr, TW, TH, blocks = [];
+  // 결정적 난수
+  const hash = (i, j) => { const s = Math.sin(i * 127.1 + j * 311.7) * 43758.5453; return s - Math.floor(s); };
+
+  function build() {
+    dpr = Math.min(2, devicePixelRatio || 1); W = innerWidth; H = innerHeight;
+    cv.width = W * dpr; cv.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    TW = Math.max(34, Math.min(76, Math.min(W, H) / 8.5)); TH = TW / 2;
+    blocks = [];
+    const ox = W / 2, oy = H / 2;
+    const n = Math.ceil((W / TW + H / TH) / 2) + 3;
+    for (let i = -n; i <= n; i++) for (let j = -n; j <= n; j++) {
+      const x = ox + (i - j) * TW / 2, y = oy + (i + j) * TH / 2;
+      if (x < -TW || x > W + TW || y < -TH * 2 || y > H + TH * 4) continue;
+      const r = hash(i, j);
+      blocks.push({ i, j, x, y, e: 0, v: 0, icon: r < .16 ? (r * 100 | 0) % 6 : -1, jit: hash(j, i) });
+    }
+    blocks.sort((a, b) => (a.i + a.j) - (b.i + b.j) || a.i - b.i);
+  }
+  addEventListener('resize', build); build();
+
+  // 둥근 다각형
+  function rpoly(p, r) {
+    ctx.beginPath();
+    const n = p.length;
+    for (let k = 0; k < n; k++) {
+      const a = p[k], b = p[(k + 1) % n], m = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+      if (k === 0) ctx.moveTo(m[0], m[1]);
+      const c = p[(k + 2) % n], m2 = [(b[0] + c[0]) / 2, (b[1] + c[1]) / 2];
+      ctx.arcTo(b[0], b[1], m2[0], m2[1], r);
+    }
+    ctx.closePath();
+  }
+
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const mix = (c1, c2, t) => [lerp(c1[0], c2[0], t), lerp(c1[1], c2[1], t), lerp(c1[2], c2[2], t)];
+  const rgb = (c, k = 1) => `rgb(${c[0] * k | 0},${c[1] * k | 0},${c[2] * k | 0})`;
+  const DARK = [44, 43, 50], LILAC = [178, 156, 255], MAG = [236, 96, 214];
+  const tint = e => e < .6 ? mix(DARK, LILAC, e / .6) : mix(LILAC, MAG, (e - .6) / .4);
+
+  // 윗면 아이콘 (단위 정사각형 -1..1 위에 그린 뒤 아이소 변환)
+  function icon(kind) {
+    ctx.beginPath();
+    switch (kind) {
+      case 0: ctx.arc(0, 0, .45, 0, Math.PI * 2); break;
+      case 1: ctx.moveTo(-.45, 0); ctx.lineTo(.45, 0); ctx.moveTo(0, -.45); ctx.lineTo(0, .45); break;
+      case 2: ctx.rect(-.4, -.4, .8, .8); break;
+      case 3: ctx.moveTo(-.45, .25); ctx.lineTo(0, -.4); ctx.lineTo(.45, .25); ctx.closePath(); break;
+      case 4: ctx.moveTo(-.45, -.2); ctx.lineTo(.45, -.2); ctx.moveTo(-.45, .1); ctx.lineTo(.45, .1); ctx.moveTo(-.45, .4); ctx.lineTo(.15, .4); break;
+      default: ctx.moveTo(-.4, 0); ctx.lineTo(-.1, .3); ctx.lineTo(.45, -.3);
+    }
+    ctx.stroke();
+  }
+
+  let mx = -1, my = -1, lastMove = -10, fx = 0, fy = 0;
+  addEventListener('pointermove', e => { mx = e.clientX; my = e.clientY; lastMove = performance.now(); });
+  addEventListener('pointerdown', e => { mx = e.clientX; my = e.clientY; lastMove = performance.now(); });
+  document.documentElement.addEventListener('pointerleave', () => { lastMove = -10; });
+
+  let prev = performance.now();
+  function frame(ms) {
+    const dt = Math.min(.033, (ms - prev) / 1000); prev = ms;
+    const t = ms / 1000;
+    // 커서가 없으면 천천히 떠도는 초점
+    const active = ms - lastMove < 2500 && mx >= 0;
+    const ax = W / 2 + Math.sin(t * .23) * W * .3 + Math.sin(t * .61) * W * .08;
+    const ay = H / 2 + Math.cos(t * .19) * H * .26 + Math.sin(t * .47) * H * .06;
+    const gx = active ? mx : (reduce ? W / 2 : ax), gy = active ? my : (reduce ? H / 2 : ay);
+    const fk = Math.min(1, dt * (active ? 9 : 2));
+    fx += (gx - fx) * fk; fy += (gy - fy) * fk;
+
+    ctx.fillStyle = '#0d0d10'; ctx.fillRect(0, 0, W, H);
+    const bg = ctx.createRadialGradient(fx, fy, 0, fx, fy, TW * 5);
+    bg.addColorStop(0, 'rgba(170,110,255,.16)'); bg.addColorStop(1, 'rgba(170,110,255,0)');
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+
+    const RAD = TW * 3.4, MAXH = TH * 1.7, BASE = TH * .45;
+    const hw = TW / 2 * .9, hh = TH / 2 * .9, rr = TW * .09;
+    ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+
+    for (const b of blocks) {
+      const dx = b.x - fx, dy = (b.y - fy) * 1.5, d = Math.hypot(dx, dy);
+      let target = Math.max(0, 1 - d / RAD); target = target * target * (3 - 2 * target);
+      if (reduce) b.e += (target - b.e) * Math.min(1, dt * 10);
+      else { b.v += (90 * (target - b.e) - 11 * b.v) * dt; b.e += b.v * dt; }
+      const e = Math.max(0, Math.min(1.1, b.e));
+      const lift = BASE + e * MAXH * (.85 + b.jit * .3);
+      const x = b.x, y = b.y, ty = y - lift;
+      if (ty + hh < -10 || ty - hh > H + 10) continue;
+      const col = tint(Math.min(1, e));
+
+      // 왼쪽 면 (빛을 더 받음)
+      rpoly([[x - hw, ty], [x, ty + hh], [x, y + hh], [x - hw, y]], rr * .5);
+      ctx.fillStyle = rgb(col, .62); ctx.fill();
+      // 오른쪽 면
+      rpoly([[x, ty + hh], [x + hw, ty], [x + hw, y], [x, y + hh]], rr * .5);
+      ctx.fillStyle = rgb(col, .4); ctx.fill();
+      // 윗면 — 왼쪽 위 빛을 그라디언트로
+      rpoly([[x, ty - hh], [x + hw, ty], [x, ty + hh], [x - hw, ty]], rr);
+      const g = ctx.createLinearGradient(x - hw, ty - hh, x + hw, ty + hh);
+      g.addColorStop(0, rgb(col, 1.12)); g.addColorStop(1, rgb(col, .86));
+      ctx.fillStyle = g; ctx.fill();
+      ctx.strokeStyle = `rgba(255,255,255,${.05 + e * .22})`; ctx.lineWidth = 1; ctx.stroke();
+
+      if (b.icon >= 0) {
+        ctx.save();
+        ctx.setTransform(dpr * hw * .5, dpr * hh * .5, -dpr * hw * .5, dpr * hh * .5, x * dpr, ty * dpr);
+        ctx.strokeStyle = e > .3 ? `rgba(40,16,60,${.35 + e * .4})` : `rgba(210,200,230,${.28})`;
+        ctx.lineWidth = 1.4 / (hw * .5);
+        icon(b.icon);
+        ctx.restore();
+      }
+    }
+    // 은은한 발광
+    ctx.globalCompositeOperation = 'lighter';
+    const glow = ctx.createRadialGradient(fx, fy - MAXH * .7, 0, fx, fy - MAXH * .7, RAD);
+    glow.addColorStop(0, 'rgba(220,120,255,.13)'); glow.addColorStop(1, 'rgba(220,120,255,0)');
+    ctx.fillStyle = glow; ctx.fillRect(0, 0, W, H);
+    ctx.globalCompositeOperation = 'source-over';
+    requestAnimationFrame(frame);
+  }
+  fx = W / 2; fy = H / 2;
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,192 @@
+<!doctype html>
+<!-- meta: {"name":"릴 Coverflow","cat":"갤러리","desc":"세로로 긴 릴 카드가 커버플로로 늘어서고, 가운데 카드의 재생 막대가 다 차면 다음 카드로 넘어가는 갤러리","added":"2026-11-27"} -->
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<title>릴 커버플로</title>
+<style>
+  :root{--bg:#e9e9eb;--ink:#1f2023;--mute:#8a8b91}
+  *{box-sizing:border-box;margin:0}
+  html,body{height:100%}
+  body{background:radial-gradient(80% 70% at 50% 45%,#f2f2f4,var(--bg));color:var(--ink);overflow:hidden;
+    font-family:"Pretendard Variable",Pretendard,-apple-system,"Malgun Gothic",sans-serif;-webkit-user-select:none;user-select:none}
+  .stage{position:absolute;inset:0;perspective:1100px;cursor:grab;outline:none;touch-action:pan-y}
+  .stage.drag{cursor:grabbing}
+  .card{position:absolute;left:50%;top:50%;width:var(--w);height:var(--h);margin:calc(var(--h) / -2) 0 0 calc(var(--w) / -2);
+    border-radius:18px;overflow:hidden;background:#ccc;will-change:transform,filter,opacity;
+    box-shadow:0 26px 50px -20px rgba(20,22,30,.45),0 4px 12px rgba(20,22,30,.1)}
+  .card svg{display:block;width:100%;height:100%;pointer-events:none}
+  .cap{position:absolute;left:0;right:0;bottom:0;padding:40px 14px 16px;color:#fff;pointer-events:none;
+    background:linear-gradient(transparent,rgba(10,10,14,.55));opacity:var(--c,0)}
+  .cap b{display:block;font-size:clamp(12px,calc(var(--w) * .075),17px);font-weight:650;letter-spacing:-.02em}
+  .cap small{display:block;margin-top:3px;font-size:11px;opacity:.75;font-feature-settings:"tnum"}
+  .prog{position:absolute;left:0;bottom:0;height:3px;width:100%;background:rgba(255,255,255,.22);opacity:var(--c,0)}
+  .prog i{display:block;height:100%;width:0;background:#fff;border-radius:0 2px 2px 0}
+  .btn{position:absolute;top:50%;z-index:300;width:40px;height:40px;margin-top:-20px;border-radius:50%;border:0;cursor:pointer;
+    background:rgba(255,255,255,.85);color:var(--ink);font:inherit;font-size:20px;line-height:1;display:grid;place-items:center;
+    box-shadow:0 6px 18px rgba(20,22,30,.14);transition:transform .2s,background .2s}
+  .btn:hover{background:#fff;transform:scale(1.06)}
+  .btn:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+  #prev{left:14px} #next{right:14px}
+  @media (max-width:480px){.btn{width:32px;height:32px;margin-top:-16px;font-size:17px}#prev{left:8px}#next{right:8px}}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+  <div class="stage" id="stage" tabindex="0" aria-label="릴 갤러리, 좌우 화살표로 넘기기"></div>
+  <button class="btn" id="prev" aria-label="이전">‹</button>
+  <button class="btn" id="next" aria-label="다음">›</button>
+<script>
+  const R = [
+    { cap:'작업실의 아침', t:'room', sky:['#cfe3f1','#f7e7cf'], wall:['#efe2d0','#d9c4aa'], floor:'#b99573', acc:'#6f8f6a' },
+    { cap:'창가 그림',     t:'room', sky:['#f6d3b8','#f9eedb'], wall:['#e4e6e0','#c7ccc2'], floor:'#8f9a8a', acc:'#c46d52' },
+    { cap:'오후의 산책',   t:'out',  sky:['#bcd6ea','#f3e1c2'], hill:['#a9c19a','#7f9e79','#5d7a5f'], sun:'#fff3d6' },
+    { cap:'커피 한 잔',    t:'room', sky:['#d9e4ec','#ece4da'], wall:['#d7c3b0','#a98a70'], floor:'#6e5446', acc:'#e0b16a' },
+    { cap:'노을 지는 길',  t:'out',  sky:['#f1a985','#f6d7b0'], hill:['#c98b7a','#94606a','#5b3f52'], sun:'#ffe2b8' },
+    { cap:'책 읽는 시간',  t:'room', sky:['#c8d6e6','#e7e3ee'], wall:['#e7dfe8','#c4b5c8'], floor:'#8d7e93', acc:'#7d93b5' },
+    { cap:'밤의 책상',     t:'room', sky:['#2b3557','#5a5d84'], wall:['#4a4560','#2e2b3e'], floor:'#25222f', acc:'#f2c879', night:1 }
+  ];
+  const N = R.length, DUR = 5200;
+  const stage = document.getElementById('stage');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function rng(s){ return () => (s = (s * 16807) % 2147483647) / 2147483647; }
+
+  function person(x, y, k, col){
+    return `<g transform="translate(${x} ${y}) scale(${k})" fill="${col}"><circle cx="0" cy="-34" r="7"/><path d="M-11 -24 Q0 -29 11 -24 L13 4 Q0 8 -13 4 Z"/></g>`;
+  }
+  function art(i, o){
+    const r = rng(i * 733 + 17), id = 'r' + i;
+    let s = `<svg viewBox="0 0 180 320" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs>
+      <linearGradient id="${id}k" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${o.sky[0]}"/><stop offset="1" stop-color="${o.sky[1]}"/></linearGradient>
+      <filter id="${id}s" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="9"/></filter>
+      <filter id="${id}e"><feGaussianBlur stdDeviation=".7"/></filter>
+      <filter id="${id}g"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="${i + 5}"/><feColorMatrix values="0 0 0 0 .3 0 0 0 0 .25 0 0 0 0 .2 0 0 0 .6 0"/></filter>`;
+    if (o.t === 'room') {
+      const lit = o.night ? o.acc : '#fffaf0';
+      s += `<linearGradient id="${id}w" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${o.wall[0]}"/><stop offset="1" stop-color="${o.wall[1]}"/></linearGradient>
+        <linearGradient id="${id}l" x1="0" y1="0" x2=".4" y2="1"><stop offset="0" stop-color="${lit}" stop-opacity=".6"/><stop offset="1" stop-color="${lit}" stop-opacity="0"/></linearGradient></defs>
+        <rect width="180" height="320" fill="url(#${id}w)"/>
+        <g filter="url(#${id}e)"><rect x="34" y="44" width="92" height="112" rx="3" fill="url(#${id}k)"/>`;
+      if (o.night) for (let j = 0; j < 9; j++) s += `<circle cx="${40 + r() * 80}" cy="${50 + r() * 60}" r="${.6 + r()}" fill="#fff" opacity=".8"/>`;
+      else s += `<circle cx="${60 + r() * 40}" cy="${70 + r() * 30}" r="16" fill="#fff" opacity=".6" filter="url(#${id}s)"/>`;
+      s += `<path d="M80 44v112M34 100h92" stroke="${o.wall[1]}" stroke-width="4"/><rect x="34" y="44" width="92" height="112" rx="3" fill="none" stroke="${o.wall[1]}" stroke-width="5"/></g>
+        <polygon points="${o.night ? '150,60 110,236 196,236' : '34,156 126,156 190,300 70,300'}" fill="url(#${id}l)" filter="url(#${id}s)"/>
+        <rect y="236" width="180" height="84" fill="${o.floor}"/>
+        <g filter="url(#${id}e)"><rect x="18" y="214" width="120" height="8" rx="2" fill="${o.floor}" opacity=".9"/>
+        <rect x="26" y="222" width="5" height="40" fill="${o.floor}"/><rect x="126" y="222" width="5" height="40" fill="${o.floor}"/>`;
+      const px = 140 + r() * 14;
+      s += `<path d="M${px - 11} 236 l3 -22 h16 l3 22z" fill="${o.acc}" opacity=".9"/>`;
+      for (let j = 0; j < 6; j++) s += `<ellipse cx="${px + (r() - .5) * 26}" cy="${196 - r() * 30}" rx="5" ry="15" fill="#5f7d5b" opacity=".85" transform="rotate(${(r() - .5) * 70} ${px} 210)"/>`;
+      if (o.night) s += `<path d="M110 214 l8 -30 h14 l-6 30z" fill="${o.acc}"/><circle cx="122" cy="196" r="22" fill="${o.acc}" opacity=".45" filter="url(#${id}s)"/>`;
+      else s += `<rect x="56" y="204" width="10" height="10" rx="2" fill="${o.acc}"/>`;
+      s += person(92, 212, 1.5, o.night ? '#1b1926' : 'rgba(60,44,34,.78)') + `</g>`;
+    } else {
+      s += `</defs><rect width="180" height="320" fill="url(#${id}k)"/>
+        <circle cx="${60 + r() * 60}" cy="120" r="30" fill="${o.sun}" filter="url(#${id}s)"/>`;
+      o.hill.forEach((c, k) => {
+        const y = 190 + k * 34, a = (r() - .5) * 40;
+        s += `<path d="M-10 ${y + a} Q45 ${y - 30 - a} 95 ${y} T190 ${y - 10} V330 H-10Z" fill="${c}" filter="url(#${id}e)"/>`;
+      });
+      s += person(70 + r() * 40, 282, 1.1, 'rgba(30,26,34,.8)');
+    }
+    return s + `<rect width="180" height="320" filter="url(#${id}g)" opacity=".2"/></svg>`;
+  }
+
+  const cards = R.map((o, i) => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.innerHTML = art(i, o) + `<div class="cap"><b>${o.cap}</b><small>릴 · ${i + 1} / ${N}</small></div><div class="prog"><i></i></div>`;
+    el.addEventListener('click', () => { if (!moved) jump(i); });
+    stage.appendChild(el);
+    return el;
+  });
+  const bars = cards.map(c => c.querySelector('.prog i'));
+
+  let W = 160, H = 284;
+  function size(){
+    const sw = innerWidth, sh = innerHeight;
+    H = Math.max(110, Math.min(sh * .86, sw * .34 * 16 / 9)); W = H * 9 / 16;
+    document.body.style.setProperty('--w', W + 'px'); document.body.style.setProperty('--h', H + 'px');
+  }
+  addEventListener('resize', size);
+
+  const wrap = d => ((d % N) + N * 1.5) % N - N / 2;
+  let pos = 0, vel = 0, target = 0, prog = 0, hover = false, dragging = false;
+  function render(){
+    cards.forEach((el, i) => {
+      const d = wrap(i - pos), ad = Math.abs(d), a = Math.max(-1, Math.min(1, d)), far = Math.sign(d) * Math.max(ad - 1, 0);
+      const x = a * W * .78 + far * W * .36, z = -Math.abs(a) * W * .7 - Math.abs(far) * W * .3;
+      el.style.transform = `translate3d(${x}px,0,${z}px) rotateY(${-a * 40}deg)`;
+      el.style.zIndex = 100 - Math.round(ad * 10);
+      el.style.opacity = Math.max(0, Math.min(1, 3.2 - ad));
+      el.style.filter = ad < .05 ? 'none' : `blur(${Math.min(6, ad * 3).toFixed(1)}px) brightness(${(1 - Math.min(.25, ad * .1)).toFixed(2)})`;
+      el.style.setProperty('--c', Math.max(0, 1 - ad * 2.5).toFixed(2));
+    });
+    const cur = ((Math.round(target) % N) + N) % N;
+    bars.forEach((b, i) => b.style.width = (i === cur ? prog * 100 : 0) + '%');
+  }
+  function go(step){ target = Math.round(target) + step; prog = 0; if (reduce) { pos = target; vel = 0; } }
+  function jump(i){ const d = Math.round(wrap(i - target)); if (d) go(d); }
+
+  let prevT = performance.now();
+  function tick(now){
+    const dt = Math.min(1 / 30, (now - prevT) / 1000); prevT = now;
+    if (!dragging && !reduce) {
+      vel += (170 * (target - pos) - 22 * vel) * dt; pos += vel * dt;
+      if (Math.abs(target - pos) < .0005 && Math.abs(vel) < .001) { pos = target; vel = 0; }
+    }
+    const settled = Math.abs(target - pos) < .02;
+    if (!reduce && !hover && !dragging && settled && document.visibilityState !== 'hidden') {
+      prog += dt * 1000 / DUR;
+      if (prog >= 1) go(1);
+    }
+    render();
+    requestAnimationFrame(tick);
+  }
+
+  let sx = 0, sp = 0, lx = 0, lt = 0, flick = 0, moved = false;
+  // 가운데 카드 위에 마우스가 있으면 잠시 멈춤
+  let hoverIdx = -1;
+  cards.forEach((c, i) => {
+    c.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse') hoverIdx = i; });
+    c.addEventListener('pointerleave', () => { if (hoverIdx === i) hoverIdx = -1; });
+  });
+  setInterval(() => { hover = hoverIdx === ((Math.round(target) % N) + N) % N; }, 100);
+  stage.addEventListener('pointerdown', e => {
+    dragging = true; moved = false; sx = lx = e.clientX; sp = pos; lt = performance.now(); flick = 0;
+    stage.classList.add("drag");
+  });
+  stage.addEventListener('pointermove', e => {
+    if (!dragging) return;
+    if (!moved && Math.abs(e.clientX - sx) > 4) { moved = true; stage.setPointerCapture(e.pointerId); }
+    const now = performance.now(); flick = (e.clientX - lx) / Math.max(1, now - lt); lx = e.clientX; lt = now;
+    pos = sp - (e.clientX - sx) / (W * .78);
+  });
+  const end = e => {
+    if (!dragging) return;
+    dragging = false; stage.classList.remove('drag');
+    if (moved) { target = Math.round(pos - flick * 1.4); prog = 0; vel = 0; if (reduce) pos = target; }
+    setTimeout(() => moved = false, 0);
+  };
+  stage.addEventListener('pointerup', end); stage.addEventListener('pointercancel', end);
+
+  let acc = 0, lock = 0;
+  stage.addEventListener('wheel', e => {
+    e.preventDefault();
+    const now = performance.now(); if (now < lock) return;
+    acc += Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+    if (Math.abs(acc) > 40) { go(Math.sign(acc)); acc = 0; lock = now + 340; }
+  }, { passive:false });
+  addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight') { go(1); e.preventDefault(); }
+    if (e.key === 'ArrowLeft') { go(-1); e.preventDefault(); }
+  });
+  document.getElementById('prev').onclick = () => go(-1);
+  document.getElementById('next').onclick = () => go(1);
+
+  size(); render(); requestAnimationFrame(tick);
+</script>
+</body>
+</html>

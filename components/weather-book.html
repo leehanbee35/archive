@@ -5,9 +5,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap">
 <title>작은 날씨들</title>
 <style>
-  :root{--dur:.9s;--gold:#e9cf86;--ink:#e8dcc0;--serif:"Nanum Myeongjo","Noto Serif KR","AppleMyungjo","Batang",Georgia,serif}
+  :root{--dur:.9s;--gold:#e9cf86;--ink:#e8dcc0;--serif:"Gowun Batang","Nanum Myeongjo","Noto Serif KR","AppleMyungjo",Georgia,serif}
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%;overflow:hidden}
   body{background:radial-gradient(ellipse 75% 70% at 50% 44%,#26211c 0%,#141210 58%,#090807 100%);color:var(--ink);
@@ -29,11 +31,12 @@
   .pagel .front,.endp.front{border-radius:0 3px 3px 0}
   .pagel .back,.endp.back{border-radius:3px 0 0 3px}
   .pg::after,.paper::after,.endp::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:2}
-  .front.pg::after,.front.endp::after{background:linear-gradient(90deg,rgba(40,25,10,.34),rgba(40,25,10,.08) 5%,transparent 12%,transparent 95%,rgba(0,0,0,.08))}
-  .back.paper::after,.back.endp::after{background:linear-gradient(270deg,rgba(40,25,10,.34),rgba(40,25,10,.08) 5%,transparent 12%,transparent 95%,rgba(0,0,0,.08))}
+  .front.pg::after,.front.endp::after{background:linear-gradient(90deg,rgba(60,38,15,.26),rgba(60,38,15,.06) 5%,transparent 12%,transparent 95%,rgba(60,38,15,.05))}
+  .back.paper::after,.back.endp::after{background:linear-gradient(270deg,rgba(60,38,15,.26),rgba(60,38,15,.06) 5%,transparent 12%,transparent 95%,rgba(60,38,15,.05))}
   .shade{position:absolute;inset:0;opacity:0;pointer-events:none;z-index:3}
-  .front .shade{background:linear-gradient(90deg,rgba(0,0,0,.1),rgba(0,0,0,.45) 72%,rgba(255,248,230,.22) 90%,rgba(0,0,0,.3))}
-  .back .shade{background:linear-gradient(270deg,rgba(0,0,0,.1),rgba(0,0,0,.45) 72%,rgba(255,248,230,.22) 90%,rgba(0,0,0,.3))}
+  /* 넘기는 동안의 그림자: 검정 대신 종이와 어울리는 따뜻한 갈색을 옅게 (크림색이 회색으로 탁해지지 않게) */
+  .front .shade{background:linear-gradient(90deg,rgba(70,45,20,.04),rgba(70,45,20,.2) 72%,rgba(255,246,224,.14) 90%,rgba(70,45,20,.12))}
+  .back .shade{background:linear-gradient(270deg,rgba(70,45,20,.04),rgba(70,45,20,.2) 72%,rgba(255,246,224,.14) 90%,rgba(70,45,20,.12))}
   .turning .shade{animation:shade var(--dur) var(--dl,0s) both}
   @keyframes shade{0%,100%{opacity:0}50%{opacity:1}}
 
@@ -58,13 +61,13 @@
   .sub{margin-top:14px;font-size:10.5px;letter-spacing:.42em;padding-left:.42em;color:rgba(233,207,134,.72)}
   .rule{position:absolute;bottom:50px;width:40px;height:1px;background:rgba(233,207,134,.45)}
   .bt{font:700 14px var(--serif);letter-spacing:.24em;color:#d3b46a}
-  .blurb{margin-top:70px;font:italic 400 17px/1.95 var(--serif);color:rgba(236,226,200,.88);text-align:center;word-break:keep-all}
+  .blurb{margin-top:70px;font:400 17px/1.95 var(--serif);color:rgba(236,226,200,.88);text-align:center;word-break:keep-all}
   .bc{position:absolute;right:26px;bottom:28px;background:#efe7d6;padding:7px 9px 5px;border-radius:2px;text-align:center}
   .bc svg{display:block;width:104px;height:38px}
   .bc span{display:block;margin-top:2px;font:9px/1.4 ui-monospace,Consolas,monospace;letter-spacing:.08em;color:#2a2620}
 
   /* 면지와 본문 */
-  .endp{background:radial-gradient(circle,rgba(120,96,60,.22) 1px,transparent 1.5px) 0 0/11px 11px,#eae0ca;
+  .endp{background:radial-gradient(circle,rgba(120,96,60,.22) 1px,transparent 1.5px) 0 0/11px 11px,#efe7d6;
     display:grid;place-items:center;color:#6d5f48}
   .exl{border:1px solid rgba(109,95,72,.4);background:#efe6d2;padding:16px 24px;text-align:center;font:13px/1.7 var(--serif)}
   .exl small{display:block;font-size:10.5px;letter-spacing:.16em;color:#8e7f63}
@@ -73,7 +76,7 @@
     background:repeating-linear-gradient(180deg,transparent 0 25px,rgba(120,100,70,.13) 25px 26px) 0 92px/100% 100% no-repeat,#efe7d6}
   .mk{font-size:10px;letter-spacing:.3em;color:#9a8a6d}
   .mt{display:block;margin-top:14px;font-size:12px;color:#6b5d48}
-  .paper p{margin-top:26px;font:italic 15px/26px var(--serif);color:#4a3f30;word-break:keep-all}
+  .paper p{margin-top:26px;font:400 15px/26px var(--serif);color:#4a3f30;word-break:keep-all}
   .mn{position:absolute;bottom:18px;left:26px;font-size:10px;letter-spacing:.15em;color:#a39377}
   .pg{background:#efe7d6}
   .art{position:absolute;inset:0;width:100%;height:100%;display:block}
@@ -85,8 +88,14 @@
   .light .cap{color:#f4eee2;text-shadow:0 1px 10px rgba(0,0,0,.6)}
 
   .edge{position:absolute;top:5px;height:410px;width:0;transform-origin:0 50%;
-    background:repeating-linear-gradient(90deg,#f0e8d4 0 .9px,#c6b896 .9px 1.8px);transition:width var(--dur),transform var(--dur)}
+    /* 아주 얇게 보이는 면이라 촘촘한 줄무늬는 점선처럼 깨져 보여서, 부드러운 종이색 그라데이션으로 */
+    background:linear-gradient(90deg,#e6dcc4,#f1e9d6 50%,#e6dcc4);transition:width var(--dur),transform var(--dur)}
   #edgeR{left:294px}#edgeL{left:-294px}
+  /* 위·아래 종이 단면: 책을 위아래로 기울여도 빈틈(안쪽 갈색)이 보이지 않게 채운다 */
+  .edgeh{position:absolute;width:294px;height:0;transform-origin:0 0;transform:rotateX(90deg);
+    background:linear-gradient(0deg,#e6dcc4,#f1e9d6 50%,#e6dcc4);transition:height var(--dur)}
+  #edgeRT,#edgeRB{left:0}#edgeLT,#edgeLB{left:-294px}
+  #edgeRT,#edgeLT{top:5px}#edgeRB,#edgeLB{top:415px}
   .shadow{position:absolute;top:15px;left:170px;width:300px;height:420px;border-radius:6px;
     box-shadow:0 46px 70px -24px rgba(0,0,0,.9),0 16px 30px -8px rgba(0,0,0,.55);transition:left 1s,width 1s}
   .open .shadow{left:20px;width:600px}
@@ -109,6 +118,7 @@
     <div class="shadow"></div>
     <div class="persp"><div class="tilt" id="tilt"><div class="book" id="book">
       <div class="edge" id="edgeR"></div><div class="edge" id="edgeL"></div>
+      <div class="edgeh" id="edgeRT"></div><div class="edgeh" id="edgeRB"></div><div class="edgeh" id="edgeLT"></div><div class="edgeh" id="edgeLB"></div>
     </div></div></div>
     <button class="hit" id="hitCover" tabindex="-1" aria-hidden="true"></button>
     <button class="hit" id="hitL" tabindex="-1" aria-hidden="true"></button>
@@ -338,7 +348,8 @@ const leafT=(i,turned)=>turned?`translateZ(${(i+1)*D}px) rotateY(-180deg)`:`tran
 const bookT=()=>`translateX(${t===0?-150:t===N?150:0}px) rotateY(0deg)`;
 function applyTilt(){const front=t===0||flipping,back=t===N&&!flipping,open=!front&&!back,a=RM?0:open?2.5:7;
   tiltEl.style.transform=`rotateX(${(open?10:6)-py*a}deg) rotateY(${(front?-16:back?16:0)+px*a}deg)`}
-function edges(){const r=(N-t)*D,l=t*D;eR.style.width=r+'px';eR.style.transform=`translateZ(${r}px) rotateY(90deg)`;eL.style.width=l+'px';eL.style.transform='rotateY(-90deg)'}
+function edges(){const r=(N-t)*D,l=t*D;eR.style.width=r+'px';eR.style.transform=`translateZ(${r}px) rotateY(90deg)`;eL.style.width=l+'px';eL.style.transform='rotateY(-90deg)';
+  ['edgeRT','edgeRB'].forEach(id=>$(id).style.height=r+'px');['edgeLT','edgeLB'].forEach(id=>$(id).style.height=l+'px')}
 function mark(lo,hi,ms){for(let i=lo;i<=hi;i++)active.add(i);pending++;
   setTimeout(()=>{if(--pending===0){active.clear();active.add(t)}},ms+60)}
 function update(){const open=t>0&&t<N,ae=document.activeElement;

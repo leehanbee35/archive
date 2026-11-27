@@ -1,0 +1,244 @@
+<!doctype html>
+<!-- meta: {"name":"구김 Carousel","cat":"갤러리","desc":"가운데 포스터만 반듯하고, 옆으로 밀려난 포스터들은 종이 공처럼 구겨져요","added":"2026-11-27"} -->
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<title>구김 캐러셀</title>
+<style>
+  :root{--bg:#e7e7e5;--ink:#1c1c1c;--mute:#7d7d78}
+  *{box-sizing:border-box;margin:0}
+  html,body{height:100%;overflow:hidden}
+  body{background:radial-gradient(90% 70% at 50% 40%,#f1f1ef,var(--bg));color:var(--ink);
+    font-family:"Pretendard Variable",Pretendard,-apple-system,"Malgun Gothic",sans-serif;
+    touch-action:pan-y;user-select:none;-webkit-user-select:none}
+  canvas{position:fixed;inset:0;width:100%;height:100%;display:block;cursor:grab}
+  canvas.drag{cursor:grabbing}
+  .bar{position:fixed;left:0;right:0;bottom:clamp(8px,3vh,24px);display:flex;align-items:center;justify-content:center;gap:14px}
+  .btn{width:38px;height:38px;border-radius:50%;border:0;cursor:pointer;background:#fff;color:var(--ink);
+    box-shadow:0 4px 14px rgba(0,0,0,.1),0 0 0 1px rgba(0,0,0,.05);display:grid;place-items:center;
+    transition:transform .2s}
+  .btn:hover{transform:translateY(-1px)}
+  .btn:active{transform:scale(.94)}
+  .btn:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+  .label{min-width:9.5em;text-align:center;font-size:13px;font-weight:600;letter-spacing:-.01em}
+  .label span{display:block;font-size:11px;font-weight:500;color:var(--mute);font-feature-settings:"tnum";margin-top:2px}
+  @media (max-height:300px){.btn{width:30px;height:30px}.label span{display:none}}
+</style>
+</head>
+<body>
+<canvas id="c" aria-label="포스터 캐러셀. 가운데 포스터만 펼쳐져 있어요"></canvas>
+<div class="bar">
+  <button class="btn" id="prev" aria-label="이전 포스터"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 2.5 4.5 7 9 11.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+  <p class="label" id="label" aria-live="polite">종이비행기<span>01 / 07</span></p>
+  <button class="btn" id="next" aria-label="다음 포스터"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 2.5 9.5 7 5 11.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+</div>
+<script>
+(() => {
+  const cvs = document.getElementById('c'), ctx = cvs.getContext('2d');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const FONT = '"Pretendard Variable",Pretendard,-apple-system,"Malgun Gothic",sans-serif';
+  const SERIF = '"Noto Serif KR","Nanum Myeongjo","Batang","AppleMyungjo",serif';
+  const TW = 360, TH = 520;
+
+  /* ---------- 포스터 텍스처 ---------- */
+  function tex(draw) { const c = document.createElement('canvas'); c.width = TW; c.height = TH; const g = c.getContext('2d'); draw(g); return c; }
+  const txt = (g, s, x, y, size, w, color, font = FONT, align = 'left') => { g.font = `${w} ${size}px ${font}`; g.fillStyle = color; g.textAlign = align; g.fillText(s, x, y); };
+  const posters = [
+    { name: '종이비행기', draw: (g => {
+      g.fillStyle = '#d8352a'; g.fillRect(0, 0, TW, TH);
+      g.fillStyle = '#fff'; g.beginPath(); g.moveTo(70, 300); g.lineTo(300, 170); g.lineTo(200, 330); g.closePath(); g.fill();
+      g.fillStyle = '#e9e4dc'; g.beginPath(); g.moveTo(300, 170); g.lineTo(150, 315); g.lineTo(170, 380); g.closePath(); g.fill();
+      g.strokeStyle = 'rgba(255,255,255,.6)'; g.setLineDash([6, 8]); g.lineWidth = 2; g.beginPath(); g.moveTo(60, 360); g.quadraticCurveTo(20, 430, 110, 450); g.stroke(); g.setLineDash([]);
+      txt(g, 'NO. 01', 28, 46, 14, 700, '#fff'); txt(g, '2026', TW - 28, 46, 14, 700, '#fff', FONT, 'right');
+      txt(g, '구겨도 다시 펴져요', 28, TH - 34, 17, 600, '#fff');
+    }) },
+    { name: '종이 버티기', draw: (g => {
+      g.fillStyle = '#1e3a2c'; g.fillRect(0, 0, TW, TH);
+      txt(g, '종이.', 26, 190, 92, 700, '#efe7d2', SERIF); txt(g, '버텨요.', 26, 300, 92, 700, '#efe7d2', SERIF);
+      g.fillStyle = '#c9a85a'; g.fillRect(28, 340, 60, 4);
+      txt(g, '두 번째 판 · 여름 한정', 28, TH - 34, 14, 500, 'rgba(239,231,210,.75)');
+    }) },
+    { name: '둥근 날', draw: (g => {
+      g.fillStyle = '#f2c230'; g.fillRect(0, 0, TW, TH);
+      for (let y = 0; y < 5; y++) for (let x = 0; x < 4; x++) {
+        g.fillStyle = (x + y) % 3 === 0 ? '#1f3fbf' : (x + y) % 3 === 1 ? '#f7efe0' : '#e2542e';
+        g.beginPath(); g.arc(60 + x * 80, 80 + y * 80, 30 + ((x * 7 + y * 3) % 3) * 4, 0, 7); g.fill();
+      }
+      txt(g, '둥근 날', 28, TH - 52, 38, 800, '#1c1c1c'); txt(g, '원 스무 개의 오후', 28, TH - 24, 13, 500, '#1c1c1c');
+    }) },
+    { name: '일곱 번째', draw: (g => {
+      g.fillStyle = '#f3eee4'; g.fillRect(0, 0, TW, TH);
+      for (let i = 0; i < 12; i++) { g.fillStyle = i % 2 ? '#111' : '#f3eee4'; g.fillRect(0, 330 + i * 16, TW, 8); }
+      txt(g, '07', 18, 280, 230, 800, '#111');
+      txt(g, '일곱 번째 상영', TW - 26, 44, 14, 600, '#111', FONT, 'right');
+    }) },
+    { name: '해 질 녘', draw: (g => {
+      const gr = g.createLinearGradient(0, 0, 0, TH); gr.addColorStop(0, '#2b1055'); gr.addColorStop(.6, '#d53a9d'); gr.addColorStop(1, '#ffb45e');
+      g.fillStyle = gr; g.fillRect(0, 0, TW, TH);
+      g.fillStyle = '#ffe9a8'; g.beginPath(); g.arc(TW / 2, 300, 90, Math.PI, 0); g.fill();
+      for (let i = 0; i < 6; i++) { g.fillStyle = '#ffe9a8'; g.fillRect(TW / 2 - 90 + i * 6, 310 + i * 14, 180 - i * 12, 5); }
+      txt(g, '해 질 녘', TW / 2, 110, 46, 800, '#fff', FONT, 'center'); txt(g, '옥상 음악회 · 저녁 7시', TW / 2, TH - 30, 13, 500, '#2b1055', FONT, 'center');
+    }) },
+    { name: '소음 없음', draw: (g => {
+      g.fillStyle = '#111'; g.fillRect(0, 0, TW, TH);
+      for (let y = 0; y < 22; y++) for (let x = 0; x < 16; x++) {
+        const r = Math.max(0, 9 * (1 - Math.hypot(x - 8, y - 9) / 10));
+        g.fillStyle = '#ff7a1a'; g.beginPath(); g.arc(12 + x * 22.5, 12 + y * 22.5, r, 0, 7); g.fill();
+      }
+      txt(g, '소음 없음', 28, TH - 44, 40, 800, '#fff'); txt(g, '조용한 전시', 28, TH - 20, 13, 500, 'rgba(255,255,255,.6)');
+    }) },
+    { name: '물결 연습', draw: (g => {
+      g.fillStyle = '#bfe1f2'; g.fillRect(0, 0, TW, TH);
+      g.strokeStyle = '#1c4f8a'; g.lineWidth = 5;
+      for (let k = 0; k < 11; k++) { g.beginPath(); for (let x = 0; x <= TW; x += 6) g.lineTo(x, 120 + k * 26 + Math.sin(x / 34 + k * .7) * 10); g.stroke(); }
+      txt(g, '물결 연습', 28, 74, 40, 800, '#1c4f8a'); txt(g, '수영장 개장 · 6월', 28, TH - 30, 13, 600, '#1c4f8a');
+    }) }
+  ];
+  const NP = posters.length;
+  let dirty = true;
+  posters.forEach(p => p.t = tex(p.draw));
+  // 캔버스 글자는 웹폰트를 스스로 불러오지 않으니, 필요한 글자를 미리 요청한 뒤 다시 그려요
+  if (document.fonts && document.fonts.load) {
+    const chars = '구겨도다시펴져요종이버텨두번째판여름한정둥근날원스무개의오후일곱상영해질녘옥상음악회저녁시소음없조용한전물결연습수영장개월';
+    Promise.all(['500', '600', '700', '800'].map(w => document.fonts.load(`${w} 20px "Pretendard Variable"`, chars)))
+      .then(() => { posters.forEach(p => p.t = tex(p.draw)); dirty = true; }).catch(() => {});
+  }
+
+  /* ---------- 메시: 평면 ↔ 구겨진 공 ---------- */
+  const GX = 7, GY = 9;              // 격자 꼭짓점 수
+  function rng(seed) { return () => (seed = (seed * 16807) % 2147483647) / 2147483647; }
+  posters.forEach((p, k) => {
+    const r = rng(1234 + k * 977), verts = [];
+    for (let j = 0; j < GY; j++) for (let i = 0; i < GX; i++) {
+      const u = i / (GX - 1), v = j / (GY - 1);
+      const th = (u - .5) * Math.PI * 2 * .96, ph = .12 + v * (Math.PI - .24);
+      const rad = .72 + r() * .5;    // 울퉁불퉁한 반지름 → 각진 면
+      verts.push({ u, v, bx: Math.sin(ph) * Math.sin(th) * rad, by: -Math.cos(ph) * rad, bz: Math.sin(ph) * Math.cos(th) * rad, d: r() * .35 });
+    }
+    const tris = [];
+    for (let j = 0; j < GY - 1; j++) for (let i = 0; i < GX - 1; i++) {
+      const a = j * GX + i, b = a + 1, c = a + GX, d = c + 1;
+      if ((i + j) % 2) { tris.push([a, b, c], [b, d, c]); } else { tris.push([a, b, d], [a, d, c]); }
+    }
+    p.verts = verts; p.tris = tris; p.tilt = [r() * 2 - 1, r() * 2 - 1];
+  });
+
+  let W, H, DPR, PH, PW, R, cx, cy;
+  function resize() {
+    DPR = Math.min(2, devicePixelRatio || 1); W = innerWidth; H = innerHeight;
+    cvs.width = W * DPR; cvs.height = H * DPR;
+    const avail = H - Math.min(90, H * .28);
+    PH = Math.min(avail * .86, W * .5 / (TW / TH)); PW = PH * TW / TH; R = PH * .16;
+    cx = W / 2; cy = avail / 2 + 8; dirty = true;
+  }
+  addEventListener('resize', resize); resize();
+
+  // 펼침 정도(0 평면 ~ 1 공) 와 화면 위치
+  const ease = t => t * t * (3 - 2 * t);
+  function layout(d) {
+    const a = Math.abs(d), s = Math.sign(d), near = PW / 2 + R * 1.7, step = R * 2.7;
+    const x = a <= 1 ? d * near : s * (near + (a - 1) * step);
+    return { x, c: ease(Math.min(1, a)) };
+  }
+
+  function drawPoster(p, d) {
+    const { x, c } = layout(d);
+    const ox = cx + x, oy = cy + ease(Math.min(1, Math.abs(d))) * (PH / 2 - R);   // 공은 바닥에 앉아요
+    if (ox < -R * 3 || ox > W + R * 3) return;
+    // 그림자
+    const shW = PW * .55 * (1 - c) + R * 1.1 * c;
+    ctx.save(); ctx.fillStyle = `rgba(0,0,0,${.13 + c * .07})`; ctx.filter = 'blur(6px)';
+    ctx.beginPath(); ctx.ellipse(ox, cy + PH / 2 + 6 - c * 4, shW, 6 + (1 - c) * 4, 0, 0, 7); ctx.fill(); ctx.restore();
+
+    const roll = c * (x / R) * .6 + c * p.tilt[0] * 2, ry = c * p.tilt[1] * 1.4, rx = c * .5;
+    const cr = Math.cos(roll), sr = Math.sin(roll), cY = Math.cos(ry), sY = Math.sin(ry), cX = Math.cos(rx), sX = Math.sin(rx);
+    const f = PH * 4, pts = [];
+    for (const v of p.verts) {
+      const k = Math.min(1, Math.max(0, (c - v.d) / (1 - v.d)));     // 꼭짓점마다 조금씩 다르게 구겨져요
+      const kk = c >= 1 ? 1 : k;
+      let X = (v.u - .5) * PW * (1 - kk) + v.bx * R * kk;
+      let Y = (v.v - .5) * PH * (1 - kk) + v.by * R * kk;
+      let Z = v.bz * R * kk;
+      let t = X * cY + Z * sY; Z = -X * sY + Z * cY; X = t;          // Y축
+      t = Y * cX - Z * sX; Z = Y * sX + Z * cX; Y = t;               // X축
+      t = X * cr - Y * sr; Y = X * sr + Y * cr; X = t;               // Z축 (굴러가기)
+      const s = f / (f - Z);
+      pts.push({ x: ox + X * s, y: oy + Y * s, X, Y, Z, u: v.u * TW, v: v.v * TH });
+    }
+    const list = p.tris.map(t => ({ t, z: pts[t[0]].Z + pts[t[1]].Z + pts[t[2]].Z })).sort((a, b) => a.z - b.z);
+    for (const { t } of list) tri(p.t, pts[t[0]], pts[t[1]], pts[t[2]], c);
+  }
+
+  const L = (() => { const v = [-.45, -.6, .66], n = Math.hypot(...v); return v.map(x => x / n); })();
+  function tri(img, a, b, c, crumple) {
+    const area = (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+    if (Math.abs(area) < .05) return;
+    // 3D 법선 → 빛
+    const ux = b.X - a.X, uy = b.Y - a.Y, uz = b.Z - a.Z, vx = c.X - a.X, vy = c.Y - a.Y, vz = c.Z - a.Z;
+    let nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx; const nl = Math.hypot(nx, ny, nz) || 1;
+    nx /= nl; ny /= nl; nz /= nl; if (nz < 0) { nx = -nx; ny = -ny; nz = -nz; }
+    const lit = nx * L[0] + ny * L[1] + nz * L[2];
+    // 살짝 부풀려 이음새 틈을 막아요
+    const mx = (a.x + b.x + c.x) / 3, my = (a.y + b.y + c.y) / 3, grow = p => { const dx = p.x - mx, dy = p.y - my, l = Math.hypot(dx, dy) || 1; return [p.x + dx / l * .7, p.y + dy / l * .7]; };
+    const A = grow(a), B = grow(b), C = grow(c);
+    ctx.save();
+    ctx.beginPath(); ctx.moveTo(A[0], A[1]); ctx.lineTo(B[0], B[1]); ctx.lineTo(C[0], C[1]); ctx.closePath();
+    if (area > 0) {
+      ctx.clip();
+      // 텍스처 삼각형 → 화면 삼각형 아핀 변환
+      const du1 = b.u - a.u, dv1 = b.v - a.v, du2 = c.u - a.u, dv2 = c.v - a.v, det = du1 * dv2 - du2 * dv1;
+      if (det) {
+        const dx1 = b.x - a.x, dy1 = b.y - a.y, dx2 = c.x - a.x, dy2 = c.y - a.y;
+        const m11 = (dx1 * dv2 - dx2 * dv1) / det, m12 = (dy1 * dv2 - dy2 * dv1) / det;
+        const m21 = (dx2 * du1 - dx1 * du2) / det, m22 = (dy2 * du1 - dy1 * du2) / det;
+        ctx.transform(m11, m12, m21, m22, a.x - m11 * a.u - m21 * a.v, a.y - m12 * a.u - m22 * a.v);
+        ctx.drawImage(img, 0, 0);
+        ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+      }
+    } else {
+      ctx.fillStyle = '#ece8df'; ctx.fill();     // 종이 뒷면
+    }
+    const shade = (lit - .62) * crumple;
+    if (Math.abs(shade) > .01) { ctx.fillStyle = shade > 0 ? `rgba(255,255,255,${Math.min(.5, shade * .9)})` : `rgba(0,0,0,${Math.min(.55, -shade * 1.1)})`; ctx.fill(); }
+    ctx.restore();
+  }
+
+  /* ---------- 상태 / 입력 ---------- */
+  let pos = 0, target = 0, idleAt = performance.now();
+  const label = document.getElementById('label');
+  const mod = n => ((n % NP) + NP) % NP;
+  function go(n) { target = Math.round(target) + n; idleAt = performance.now(); }
+  document.getElementById('prev').onclick = () => go(-1);
+  document.getElementById('next').onclick = () => go(1);
+  addEventListener('keydown', e => { if (e.key === 'ArrowLeft') go(-1); if (e.key === 'ArrowRight') go(1); });
+  let dragX = null, startT = 0;
+  cvs.addEventListener('pointerdown', e => { dragX = e.clientX; startT = target; cvs.setPointerCapture(e.pointerId); cvs.classList.add('drag'); });
+  cvs.addEventListener('pointermove', e => { if (dragX === null) return; target = startT - (e.clientX - dragX) / (R * 2.7 + PW * .25); idleAt = performance.now(); });
+  const end = () => { if (dragX === null) return; dragX = null; target = Math.round(target); cvs.classList.remove('drag'); };
+  cvs.addEventListener('pointerup', end); cvs.addEventListener('pointercancel', end);
+  let wheelT; addEventListener('wheel', e => { e.preventDefault(); target += (e.deltaX || e.deltaY) / 400; idleAt = performance.now(); clearTimeout(wheelT); wheelT = setTimeout(() => target = Math.round(target), 160); }, { passive: false });
+
+  let last = performance.now(), shown = -1, lastPos = NaN;
+  function frame(now) {
+    const dt = Math.min(.05, (now - last) / 1000); last = now;
+    if (!reduce && dragX === null && now - idleAt > 4200) go(1);
+    pos += (target - pos) * (reduce ? 1 : 1 - Math.pow(.004, dt));
+    if (Math.abs(target - pos) < .0005) pos = target;
+    if (pos === lastPos && !dirty) return requestAnimationFrame(frame);
+    lastPos = pos; dirty = false;
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0); ctx.clearRect(0, 0, W, H);
+    const base = Math.round(pos), items = [];
+    for (let k = -3; k <= 3; k++) items.push({ i: base + k, d: base + k - pos });
+    items.sort((a, b) => Math.abs(b.d) - Math.abs(a.d));       // 가운데 것을 마지막에
+    for (const it of items) drawPoster(posters[mod(it.i)], it.d);
+    const cur = mod(base);
+    if (cur !== shown) { shown = cur; label.innerHTML = `${posters[cur].name}<span>${String(cur + 1).padStart(2, '0')} / ${String(NP).padStart(2, '0')}</span>`; }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

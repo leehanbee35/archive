@@ -1,0 +1,145 @@
+<!doctype html>
+<!-- meta: {"name":"색조 Shelf","cat":"갤러리","desc":"입자감 있는 두 가지 색 그라데이션 타일이 볼록한 곡면을 따라 늘어서고, 끌거나 휠로 관성 있게 넘기는 색 견본 선반","added":"2026-11-27"} -->
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<title>색조 선반</title>
+<style>
+  :root{--ink:#f1ede6;--mute:#77726b}
+  *{box-sizing:border-box;margin:0}
+  html,body{height:100%;overflow:hidden}
+  body{background:#000;color:var(--ink);
+    font-family:"Pretendard Variable",Pretendard,-apple-system,"Malgun Gothic",sans-serif;
+    -webkit-user-select:none;user-select:none}
+  .stage{position:fixed;inset:0;cursor:grab;touch-action:none}
+  .stage.drag{cursor:grabbing}
+  .row{position:absolute;left:50%;top:50%;transform-style:preserve-3d}
+  .tile{position:absolute;left:0;top:0;transform-style:preserve-3d}
+  .face{position:absolute;inset:0;border-radius:clamp(12px,1.6vw,22px);overflow:hidden;
+    box-shadow:0 30px 60px rgba(0,0,0,.6),inset 0 0 0 1px rgba(255,255,255,.06);
+    transition:transform .4s cubic-bezier(.2,.8,.2,1)}
+  .tile:hover .face{transform:scale(1.05)}
+  .stage.drag .tile:hover .face{transform:none}
+  .grain{position:absolute;inset:0;opacity:.32;mix-blend-mode:overlay;pointer-events:none;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .9 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    background-size:180px 180px}
+  .sheen{position:absolute;inset:0;pointer-events:none;background:linear-gradient(105deg,rgba(255,255,255,.14),transparent 40%)}
+  .lab{position:absolute;left:9%;bottom:7%;font-size:clamp(11px,calc(.9vmin + 6px),17px);font-weight:600;letter-spacing:-.02em}
+  .lab small{display:block;margin-top:.35em;font-size:.7em;font-weight:500;opacity:.6;font-variant-numeric:tabular-nums;letter-spacing:.02em}
+  .go{position:absolute;right:8%;bottom:7%;font-size:clamp(10px,calc(.7vmin + 5px),13px);font-weight:600;
+    padding:.35em .7em;border-radius:99em;background:rgba(255,255,255,.18);backdrop-filter:blur(6px);
+    opacity:0;transform:translateY(6px);transition:opacity .3s,transform .3s}
+  .tile:hover .go{opacity:1;transform:none}
+  .light .lab,.light .go{color:#24282c}
+  .light .go{background:rgba(0,0,0,.08)}
+  .dim{position:absolute;inset:0;background:#000;pointer-events:none;opacity:0}
+  .ui{position:fixed;left:clamp(14px,3vw,32px);right:clamp(14px,3vw,32px);display:flex;justify-content:space-between;font-size:12px;color:var(--mute);pointer-events:none}
+  .ui b{color:var(--ink);font-weight:600}
+  .top{top:clamp(12px,3vh,26px)} .bot{bottom:clamp(12px,3vh,26px)}
+  .num{font-variant-numeric:tabular-nums;color:var(--ink)}
+  @media (max-height:320px){.top{display:none}}
+  @media (prefers-reduced-motion:reduce){.face,.go{transition:none}}
+</style>
+</head>
+<body>
+<div class="stage" id="stage" tabindex="0" aria-label="색 견본 선반, 좌우 화살표로 이동">
+  <div class="row" id="row"></div>
+</div>
+<div class="ui top"><b>색조 선반</b><span>열 가지 분위기</span></div>
+<div class="ui bot"><span id="cur">숲속 만</span><span class="num" id="num">01 / 10</span></div>
+<script>
+const TONES=[
+  ['숲속 만','#0f3b33','#7fb59a','#d9e8b0',160],
+  ['애쉬 레드','#4a1a1d','#c9655a','#f2b8a0',200],
+  ['화강암','#2e3035','#a8a39b','#e0dcd3',135],
+  ['호박빛','#6e3209','#f1a541','#ffe0a0',190],
+  ['북서풍','#1a3050','#8fb6d2','#e6f0f5',150],
+  ['스카이라인','#3e4fa0','#f08a5d','#ffd1a1',175],
+  ['물밑','#021d31','#1f8f97','#8fe0d2',200],
+  ['들꽃','#d98ab5','#f5e08a','#fff5d8',140],
+  ['서리 결','#b7c7d3','#f4f7f8','#ffffff',165,1],
+  ['자정 보라','#120a2a','#6b3fa0','#d39cf0',210]];
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const N=TONES.length,stage=document.getElementById('stage'),row=document.getElementById('row');
+const num=document.getElementById('num'),curEl=document.getElementById('cur');
+const tiles=TONES.map(([name,a,b,c,deg,light],i)=>{
+  const el=document.createElement('div');el.className='tile'+(light?' light':'');
+  const bg=`radial-gradient(70% 55% at ${30+i*7%40}% ${20+i*11%50}%,${c}cc,transparent 70%),radial-gradient(90% 80% at 85% 100%,${a},transparent 75%),linear-gradient(${deg}deg,${a},${b})`;
+  el.innerHTML=`<div class="face" style="background:${bg};color:#fff"><div class="grain"></div><div class="sheen"></div>
+    <div class="lab">${name}<small>${b.toUpperCase()}</small></div><span class="go">보기 ↗</span><div class="dim"></div></div>`;
+  row.appendChild(el);return {el,dim:el.querySelector('.dim')};
+});
+
+const ARC=Math.PI*2/20;
+let W,H,R,gap;
+function layout(){
+  const vw=innerWidth,vh=innerHeight;
+  W=Math.min(vw/5.6,vh*.62/1.3);H=W*1.3;gap=W*1.12;R=gap/ARC;
+  stage.style.perspective=Math.round(R*1.6)+'px';
+  for(const t of tiles)Object.assign(t.el.style,{width:W+'px',height:H+'px',marginLeft:-W/2+'px',marginTop:-H/2+'px'});
+}
+const wrap=d=>{d=((d%N)+N)%N;return d>N/2?d-N:d};
+const clamp=(v,a)=>Math.max(-a,Math.min(a,v));
+
+let pos=0,vel=0,target=null,drag=null,lastInput=-1e9,prev=performance.now(),shown=-1;
+function render(){
+  for(let i=0;i<N;i++){
+    const t=tiles[i],d=wrap(i-pos),a=d*ARC;
+    const x=R*Math.sin(a),z=R*Math.cos(a)-R;
+    t.el.style.transform=`translate3d(${x.toFixed(1)}px,0,${z.toFixed(1)}px) rotateY(${a.toFixed(4)}rad)`;
+    t.dim.style.opacity=Math.min(.8,(1-Math.cos(a))*1.1).toFixed(3);
+    t.el.style.visibility=Math.abs(a)>1.5?'hidden':'visible';
+  }
+  const c=((Math.round(pos)%N)+N)%N;
+  if(c!==shown){shown=c;curEl.textContent=TONES[c][0];num.textContent=String(c+1).padStart(2,'0')+' / '+N}
+}
+function tick(now){
+  const dt=Math.min(3,(now-prev)/16.67);prev=now;
+  if(!drag){
+    if(target!==null){pos+=(target-pos)*Math.min(1,(reduce?1:.13)*dt);if(Math.abs(target-pos)<.0008){pos=target;target=null}}
+    else{
+      pos+=vel*dt;vel*=Math.pow(reduce?.6:.945,dt);if(Math.abs(vel)<.0004)vel=0;
+      if(!reduce&&now-lastInput>2600)pos+=.002*dt;
+      else if(Math.abs(vel)<.01)pos+=(Math.round(pos)-pos)*Math.min(1,.07*dt);
+    }
+  }
+  render();requestAnimationFrame(tick);
+}
+stage.addEventListener('pointerdown',e=>{
+  if(e.button)return;
+  drag={x:e.clientX,lx:e.clientX,lt:e.timeStamp,p:pos,moved:0,tile:e.target.closest('.tile')};
+  vel=0;target=null;lastInput=performance.now();stage.setPointerCapture(e.pointerId);stage.classList.add('drag');
+});
+stage.addEventListener('pointermove',e=>{
+  if(!drag)return;
+  const dx=e.clientX-drag.x;drag.moved=Math.max(drag.moved,Math.abs(dx));
+  pos=drag.p-dx/gap;
+  const dt=Math.max(1,e.timeStamp-drag.lt);
+  vel=clamp(vel*.3-(e.clientX-drag.lx)/gap/(dt/16.67)*.7,.5);
+  drag.lx=e.clientX;drag.lt=e.timeStamp;lastInput=performance.now();
+});
+function endDrag(e){
+  if(!drag)return;stage.classList.remove('drag');
+  if(drag.moved<6){vel=0;const i=tiles.findIndex(t=>t.el===drag.tile);if(i>=0)target=Math.round(pos+wrap(i-pos))}
+  else if(reduce||e.timeStamp-drag.lt>90)vel=0;
+  drag=null;lastInput=performance.now();
+}
+stage.addEventListener('pointerup',endDrag);
+stage.addEventListener('pointercancel',endDrag);
+stage.addEventListener('wheel',e=>{
+  e.preventDefault();target=null;
+  const d=Math.abs(e.deltaX)>Math.abs(e.deltaY)?e.deltaX:e.deltaY;
+  vel=clamp(vel+d*(e.deltaMode?.02:.0007),.5);lastInput=performance.now();
+},{passive:false});
+addEventListener('keydown',e=>{
+  let n=0;
+  if(e.key==='ArrowRight'||e.key==='ArrowDown')n=1;else if(e.key==='ArrowLeft'||e.key==='ArrowUp')n=-1;
+  if(!n)return;e.preventDefault();vel=0;target=Math.round(target??pos)+n;lastInput=performance.now();
+});
+addEventListener('resize',layout);
+layout();render();requestAnimationFrame(tick);
+</script>
+</body>
+</html>

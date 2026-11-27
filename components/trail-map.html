@@ -1,0 +1,333 @@
+<!doctype html>
+<!-- meta: {"name":"등산 지도 Pamphlet","cat":"화면","desc":"접힌 등산 지도를 펼치면 등고선 지형이 나오고, 돋보기로 길을 따라가 볼 수 있어요","added":"2026-11-27"} -->
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<title>붉은 분지 산책 지도</title>
+<style>
+  :root{--bg:#2a1d16;--ink:#f1e4c8;--mute:#b39878;--paper:#f1e4c8;--terra:#b4532f;--ease:cubic-bezier(.62,0,.24,1)}
+  *{box-sizing:border-box;margin:0}
+  html,body{height:100%;overflow:hidden}
+  body{display:flex;flex-direction:column;background:radial-gradient(80% 70% at 50% 50%,#3a281e,var(--bg) 70%,#1d140f);
+    font-family:"Pretendard Variable",Pretendard,-apple-system,"Malgun Gothic",sans-serif;color:var(--ink)}
+  header,footer{text-align:center;padding:clamp(8px,2.4vh,22px) 16px;font-size:clamp(11px,1.8vmin,14px);letter-spacing:.02em;color:var(--mute)}
+  header b{color:var(--ink);font-weight:650}
+  footer{transition:opacity .4s}
+  .wrap{flex:1;min-height:0;position:relative}
+  .stage{position:absolute;left:50%;top:50%;width:1200px;height:420px;transform:translate(-50%,-50%) scale(var(--s,1))}
+  .map{position:absolute;inset:0;border:0;padding:0;background:none;cursor:pointer;perspective:2200px;
+    transform-style:preserve-3d;-webkit-tap-highlight-color:transparent;border-radius:6px}
+  .map:focus-visible{outline:2px solid var(--mute);outline-offset:10px}
+  .map.open{cursor:none}
+  .root{position:absolute;left:0;top:0;width:300px;height:420px;transform-style:preserve-3d;transform-origin:150px 210px;
+    transform:translateX(450px) rotateX(14deg) rotateZ(-4deg) scale(1.12);
+    transition:transform .9s var(--ease) .95s}
+  .open .root{transform:none;transition-delay:0s}
+  .pnl{position:absolute;top:0;left:0;width:300px;height:420px;transform-style:preserve-3d;transform-origin:0 50%;
+    transition:transform .75s var(--ease)}
+  .pnl .pnl{left:300px}
+  #p2{transform:translateZ(1.5px) rotateY(-179.5deg);transition-delay:.7s}
+  #p3{transform:translateZ(-1.5px) rotateY(179.5deg);transition-delay:.35s}
+  #p4{transform:translateZ(1.5px) rotateY(-179.5deg);transition-delay:0s}
+  .open #p2{transform:none;transition-delay:.25s}
+  .open #p3{transform:none;transition-delay:.6s}
+  .open #p4{transform:none;transition-delay:.95s}
+  .face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;overflow:hidden;background:var(--paper)}
+  .face canvas{width:100%;height:100%;display:block}
+  .back{transform:rotateY(180deg);background:
+    repeating-radial-gradient(circle at 70% 30%,transparent 0 13px,rgba(140,80,50,.08) 13px 14px),var(--paper)}
+  .front::after,.back::after{content:"";position:absolute;inset:0;pointer-events:none;transition:opacity .75s var(--ease)}
+  .front::after{background:linear-gradient(90deg,rgba(70,35,20,.18),transparent 6%,transparent 94%,rgba(255,255,255,.12));opacity:.6}
+  .map:not(.open) .front::after{opacity:1;background:linear-gradient(90deg,rgba(40,20,10,.5),rgba(40,20,10,.15) 50%,rgba(40,20,10,.45))}
+  .back::after{background:linear-gradient(90deg,rgba(40,20,10,.25),transparent 30%,transparent 70%,rgba(40,20,10,.2))}
+  .shadowbox{box-shadow:0 30px 60px rgba(0,0,0,.45),0 6px 14px rgba(0,0,0,.3)}
+  .cover{background:linear-gradient(160deg,#c25a33,#9d4126);color:var(--paper);display:flex;flex-direction:column;padding:34px 30px}
+  .cover small{font-size:13px;letter-spacing:.06em;opacity:.85}
+  .cover h2{font-size:46px;font-weight:800;letter-spacing:-.04em;line-height:1.05;margin-top:10px}
+  .cover svg{margin-top:auto;width:100%}
+  .cover p{font-size:13px;opacity:.85;margin-top:14px}
+  .backtxt{padding:30px 28px;color:#7a4a32;font-size:13px;line-height:1.7}
+  .backtxt h3{font-size:16px;font-weight:750;margin-bottom:8px;color:#8e3d26}
+
+  .lens{position:absolute;left:0;top:0;width:170px;height:170px;pointer-events:none;opacity:0;transition:opacity .35s}
+  .lens.on{opacity:1}
+  .lens canvas{position:absolute;inset:0;width:100%;height:100%;border-radius:50%;background:var(--paper)}
+  .lens::before{content:"";position:absolute;inset:-7px;border-radius:50%;border:7px solid #3b2a20;
+    box-shadow:0 0 0 1.5px #a07a52 inset,0 0 0 1.5px #5e4433,0 18px 30px rgba(0,0,0,.45),inset 0 0 22px rgba(0,0,0,.35);z-index:2}
+  .lens::after{content:"";position:absolute;left:50%;top:50%;width:4px;height:4px;margin:-2px;border-radius:50%;background:#8e2a18;z-index:2}
+  .handle{position:absolute;width:22px;height:84px;left:150px;top:140px;border-radius:9px;transform:rotate(-45deg);transform-origin:50% 0;
+    background:linear-gradient(90deg,#2c1f17,#5a4030 45%,#2c1f17);box-shadow:0 10px 20px rgba(0,0,0,.4)}
+  .glare{position:absolute;inset:0;border-radius:50%;z-index:1;
+    background:radial-gradient(60% 40% at 32% 22%,rgba(255,255,255,.35),transparent 60%)}
+  @media (prefers-reduced-motion:reduce){.root,.pnl,.front::after,.lens,footer{transition:none!important}}
+</style>
+</head>
+<body>
+  <header><b>산책 지도</b> · 제1호 · 붉은 분지</header>
+  <div class="wrap" id="wrap">
+    <div class="stage" id="stage">
+      <button class="map" id="map" aria-expanded="false" aria-label="지도 펼치기">
+        <div class="root" id="root">
+          <div class="pnl shadowbox" id="p1">
+            <div class="face front"><canvas width="600" height="840"></canvas></div>
+            <div class="face back"></div>
+            <div class="pnl" id="p2">
+              <div class="face front"><canvas width="600" height="840"></canvas></div>
+              <div class="face back backtxt"><h3>산책 수칙</h3>표시된 길로만 걸어요.<br>분지 안쪽은 해가 지면 금방 어두워져요.<br>물은 넉넉히 챙겨요.</div>
+              <div class="pnl" id="p3">
+                <div class="face front"><canvas width="600" height="840"></canvas></div>
+                <div class="face back backtxt"><h3>코스 안내</h3>출발 → 거울 호수<br>→ 붉은 분지 능선<br>→ 바람 능선 → 노을 전망대<br><br>약 6.2km · 3시간</div>
+                <div class="pnl" id="p4">
+                  <div class="face front"><canvas width="600" height="840"></canvas></div>
+                  <div class="face back cover">
+                    <small>산책 지도 · 제1호</small>
+                    <h2>붉은<br>분지</h2>
+                    <svg viewBox="0 0 240 120" fill="none" stroke="#f1e4c8" stroke-width="1.4" aria-hidden="true">
+                      <path d="M0 110 60 50 90 74 140 20 240 110" stroke-width="2"/>
+                      <path d="M20 110 60 68 90 90 140 40 220 110" opacity=".6"/>
+                      <path d="M40 110 60 86 90 104 140 60 200 110" opacity=".35"/>
+                      <circle cx="190" cy="26" r="11" fill="#f1e4c8" stroke="none" opacity=".9"/>
+                    </svg>
+                    <p>눌러서 펼치기</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </button>
+      <div class="lens" id="lens" aria-hidden="true"><div class="handle"></div><canvas id="lc" width="340" height="340"></canvas><div class="glare"></div></div>
+    </div>
+  </div>
+  <footer id="hint">지도를 눌러 펼쳐 보세요</footer>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const stage = $('stage'), map = $('map'), lens = $('lens'), lc = $('lc').getContext('2d'), hint = $('hint');
+  const mq = matchMedia('(prefers-reduced-motion: reduce)');
+  let reduce = mq.matches; mq.addEventListener?.('change', e => reduce = e.matches);
+  const MW = 1200, MH = 420, K = 2, D = 170;
+
+  const fit = () => {
+    const r = $('wrap').getBoundingClientRect();
+    stage.style.setProperty('--s', Math.max(.2, Math.min(r.width / 1250, r.height / 470)).toFixed(4));
+  };
+  addEventListener('resize', fit); fit();
+
+  // ---------- 지형 ----------
+  const hash = (x, y) => { const h = Math.sin(x * 127.1 + y * 311.7) * 43758.5453; return h - Math.floor(h); };
+  const vn = (x, y) => {
+    const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi;
+    const u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf);
+    const a = hash(xi, yi), b = hash(xi + 1, yi), c = hash(xi, yi + 1), d = hash(xi + 1, yi + 1);
+    return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
+  };
+  const fbm = (x, y) => { let s = 0, a = .5; for (let o = 0; o < 5; o++) { s += vn(x, y) * a; x *= 2.03; y *= 2.03; a *= .5; } return s; };
+  const segD = (x, y, ax, ay, bx, by) => {
+    const dx = bx - ax, dy = by - ay, t = Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy)));
+    return Math.hypot(x - ax - dx * t, y - ay - dy * t);
+  };
+  const G = 3, GW = MW / G + 1, GH = MH / G + 1;
+  const hf = new Float32Array(GW * GH), lake = new Float32Array(GW * GH);
+  let lo = 1e9, hi = -1e9;
+  for (let j = 0; j < GH; j++) for (let i = 0; i < GW; i++) {
+    const x = i * G, y = j * G;
+    let h = fbm(x / 230 + 3.1, y / 230 + 7.7) * .9 + x / MW * .15;
+    h += .42 * Math.exp(-((segD(x, y, 740, 40, 1100, 250) / 75) ** 2));
+    h += .38 * Math.exp(-((Math.hypot(x - 1125, y - 105) / 60) ** 2));
+    const dC = Math.hypot(x - 560, y - 235);
+    h += .5 * Math.exp(-(((dC - 92) / 30) ** 2)) - .3 * Math.exp(-((dC / 60) ** 2));
+    const dL = Math.hypot((x - 200) / 1.35, y - 285);
+    h -= .35 * Math.exp(-((dL / 120) ** 2));
+    lake[j * GW + i] = 62 + (vn(x / 40, y / 40) - .5) * 26 - dL;    // 양수 = 물
+    hf[j * GW + i] = h; lo = Math.min(lo, h); hi = Math.max(hi, h);
+  }
+  for (let k = 0; k < hf.length; k++) hf[k] = (hf[k] - lo) / (hi - lo);
+
+  const RAMP = [[0, [242, 226, 190]], [.3, [233, 199, 148]], [.55, [218, 150, 98]], [.78, [190, 98, 60]], [1, [140, 62, 38]]];
+  const ramp = h => {
+    for (let k = 1; k < RAMP.length; k++) if (h <= RAMP[k][0]) {
+      const [a, ca] = RAMP[k - 1], [b, cb] = RAMP[k], t = (h - a) / (b - a);
+      return ca.map((c, n) => c + (cb[n] - c) * t);
+    }
+    return RAMP[RAMP.length - 1][1];
+  };
+  const small = document.createElement('canvas'); small.width = GW; small.height = GH;
+  const sctx = small.getContext('2d'), img = sctx.createImageData(GW, GH);
+  for (let j = 0; j < GH; j++) for (let i = 0; i < GW; i++) {
+    const k = j * GW + i, h = hf[k];
+    const sx = hf[j * GW + Math.min(GW - 1, i + 1)] - hf[j * GW + Math.max(0, i - 1)];
+    const sy = hf[Math.min(GH - 1, j + 1) * GW + i] - hf[Math.max(0, j - 1) * GW + i];
+    const shade = Math.max(.72, Math.min(1.18, 1 + (sx + sy) * 6));
+    let c = ramp(h).map(v => v * shade);
+    const w = lake[k];
+    if (w > 0) { const t = Math.min(1, w / 18); c = [150 - 45 * t, 192 - 32 * t, 210 - 16 * t]; }
+    img.data.set([c[0], c[1], c[2], 255], k * 4);
+  }
+  sctx.putImageData(img, 0, 0);
+
+  const off = document.createElement('canvas'); off.width = MW * K; off.height = MH * K;
+  const o = off.getContext('2d');
+
+  // 등고선 (마칭 스퀘어)
+  function contour(field, level, skip) {
+    o.beginPath();
+    for (let j = 0; j < GH - 1; j++) for (let i = 0; i < GW - 1; i++) {
+      const k = j * GW + i;
+      if (skip && skip[k] > 0 && skip[k + GW + 1] > 0) continue;
+      const a = field[k], b = field[k + 1], c = field[k + GW + 1], d = field[k + GW];
+      const x = i * G, y = j * G, P = [];
+      const cut = (v1, v2, x1, y1, x2, y2) => { const t = (level - v1) / (v2 - v1); P.push([x1 + (x2 - x1) * t, y1 + (y2 - y1) * t]); };
+      if ((a > level) !== (b > level)) cut(a, b, x, y, x + G, y);
+      if ((b > level) !== (c > level)) cut(b, c, x + G, y, x + G, y + G);
+      if ((d > level) !== (c > level)) cut(d, c, x, y + G, x + G, y + G);
+      if ((a > level) !== (d > level)) cut(a, d, x, y, x, y + G);
+      for (let n = 0; n + 1 < P.length; n += 2) { o.moveTo(P[n][0], P[n][1]); o.lineTo(P[n + 1][0], P[n + 1][1]); }
+    }
+    o.stroke();
+  }
+
+  // 길 — 캣멀롬으로 부드럽게
+  const WP = [[70, 120], [150, 142], [250, 180], [360, 205], [450, 172], [520, 140], [600, 134], [665, 168], [725, 150],
+    [800, 120], [900, 152], [985, 192], [1075, 168], [1125, 112]];
+  const trail = [];
+  for (let n = 0; n < WP.length - 1; n++) {
+    const p0 = WP[Math.max(0, n - 1)], p1 = WP[n], p2 = WP[n + 1], p3 = WP[Math.min(WP.length - 1, n + 2)];
+    for (let s = 0; s < 14; s++) {
+      const t = s / 14, t2 = t * t, t3 = t2 * t;
+      const f = (a, b, c, d) => .5 * (2 * b + (-a + c) * t + (2 * a - 5 * b + 4 * c - d) * t2 + (-a + 3 * b - 3 * c + d) * t3);
+      trail.push([f(p0[0], p1[0], p2[0], p3[0]), f(p0[1], p1[1], p2[1], p3[1])]);
+    }
+  }
+  trail.push(WP[WP.length - 1]);
+  const cum = [0];
+  for (let n = 1; n < trail.length; n++) cum.push(cum[n - 1] + Math.hypot(trail[n][0] - trail[n - 1][0], trail[n][1] - trail[n - 1][1]));
+  const TOTAL = cum[cum.length - 1];
+  const along = s => {
+    let n = 1; while (n < cum.length - 1 && cum[n] < s) n++;
+    const t = (s - cum[n - 1]) / (cum[n] - cum[n - 1] || 1);
+    return [trail[n - 1][0] + (trail[n][0] - trail[n - 1][0]) * t, trail[n - 1][1] + (trail[n][1] - trail[n - 1][1]) * t];
+  };
+
+  const FONT = '"Pretendard Variable",Pretendard,"Malgun Gothic",sans-serif';
+  function label(t, x, y, size, color, halo = 'rgba(242,228,196,.9)', rot = 0) {
+    o.save(); o.translate(x, y); o.rotate(rot);
+    o.font = `700 ${size}px ${FONT}`; o.textAlign = 'center'; o.textBaseline = 'middle';
+    o.lineJoin = 'round'; o.lineWidth = 3.2; o.strokeStyle = halo; o.strokeText(t, 0, 0);
+    o.fillStyle = color; o.fillText(t, 0, 0); o.restore();
+  }
+  const stroke = (pts, w, c, dash = []) => {
+    o.beginPath(); pts.forEach((p, n) => n ? o.lineTo(p[0], p[1]) : o.moveTo(p[0], p[1]));
+    o.lineWidth = w; o.strokeStyle = c; o.setLineDash(dash); o.stroke(); o.setLineDash([]);
+  };
+
+  function drawMap() {
+    o.setTransform(1, 0, 0, 1, 0, 0);
+    o.imageSmoothingEnabled = true; o.imageSmoothingQuality = 'high';
+    o.drawImage(small, 0, 0, GW - 1, GH - 1, 0, 0, MW * K, MH * K);
+    o.setTransform(K, 0, 0, K, 0, 0);
+    // 종이 결
+    for (let n = 0; n < 5000; n++) {
+      o.fillStyle = `rgba(90,50,30,${.03 + hash(n, 7) * .05})`;
+      o.fillRect(hash(n, 1) * MW, hash(n, 2) * MH, .7, .7);
+    }
+    o.lineCap = 'round'; o.lineJoin = 'round';
+    for (let L = .04, n = 1; L < 1; L += .04, n++) {
+      o.strokeStyle = n % 5 ? 'rgba(112,48,26,.28)' : 'rgba(112,48,26,.5)';
+      o.lineWidth = n % 5 ? .55 : 1.05;
+      contour(hf, L, lake);
+    }
+    // 강
+    const inflow = [[58, -4], [80, 40], [100, 85], [140, 150], [162, 190], [178, 228]];
+    const outflow = [[168, 338], [150, 362], [172, 392], [150, 424]];
+    [inflow, outflow].forEach(r => { stroke(r, 5, 'rgba(242,228,196,.7)'); stroke(r, 2.6, '#5f93b6'); });
+    o.strokeStyle = '#4a7c9f'; o.lineWidth = 1.1; contour(lake, 0);
+    o.strokeStyle = 'rgba(255,255,255,.35)'; o.lineWidth = .7; contour(lake, 7);
+    // 분화구 테두리 빗금
+    for (let a = 0; a < Math.PI * 2; a += .09) {
+      const r1 = 70, r2 = 80 + hash(a * 10, 3) * 6;
+      o.beginPath(); o.moveTo(560 + Math.cos(a) * r1, 235 + Math.sin(a) * r1);
+      o.lineTo(560 + Math.cos(a) * r2, 235 + Math.sin(a) * r2);
+      o.strokeStyle = 'rgba(110,40,20,.35)'; o.lineWidth = .8; o.stroke();
+    }
+    // 길
+    stroke(trail, 5.5, 'rgba(255,246,226,.75)');
+    stroke(trail, 2.4, '#7d2213', [7, 5]);
+    // 표지
+    o.fillStyle = '#7d2213'; o.beginPath(); o.arc(70, 120, 5.5, 0, Math.PI * 2); o.fill();
+    o.fillStyle = '#fff4df'; o.beginPath(); o.arc(70, 120, 2.2, 0, Math.PI * 2); o.fill();
+    o.fillStyle = '#7d2213'; o.beginPath(); o.moveTo(1125, 100); o.lineTo(1134, 116); o.lineTo(1116, 116); o.closePath(); o.fill();
+    o.fillStyle = '#3c6b5a'; [[372, 222], [386, 216], [380, 230]].forEach(([x, y]) => { o.beginPath(); o.arc(x, y, 3.2, 0, 7); o.fill(); });
+    label('출발', 70, 142, 12, '#5a2414');
+    label('거울 호수', 200, 286, 12, '#f3f8fb', 'rgba(60,100,130,.55)');
+    label('붉은 분지', 560, 238, 16, '#5a1d0f');
+    label('솔숲 쉼터', 384, 246, 10.5, '#3c5a4a');
+    label('바람 능선', 935, 228, 12, '#5a2414', undefined, .53);
+    label('노을 전망대', 1125, 86, 13, '#7d2213');
+    // 방위와 축척
+    o.save(); o.translate(1160, 372);
+    o.strokeStyle = '#5a2414'; o.lineWidth = 1; o.beginPath(); o.arc(0, 0, 16, 0, 7); o.stroke();
+    o.fillStyle = '#5a2414'; o.beginPath(); o.moveTo(0, -13); o.lineTo(5, 4); o.lineTo(0, 1); o.lineTo(-5, 4); o.closePath(); o.fill();
+    o.restore(); label('북', 1160, 344, 10, '#5a2414');
+    o.fillStyle = '#5a2414'; o.fillRect(30, 396, 40, 3); o.strokeStyle = '#5a2414'; o.lineWidth = 1; o.strokeRect(70, 396, 40, 3);
+    label('0', 30, 386, 9, '#5a2414'); label('500m', 110, 386, 9, '#5a2414');
+    // 패널 4장에 나눠 그리기
+    document.querySelectorAll('.front canvas').forEach((c, n) => {
+      const x = c.getContext('2d'); x.clearRect(0, 0, 600, 840); x.drawImage(off, n * 600, 0, 600, 840, 0, 0, 600, 840);
+    });
+  }
+  drawMap();
+  (document.fonts?.ready || Promise.resolve()).then(drawMap);
+
+  // ---------- 접기 / 펼치기 ----------
+  let open = false, lensReady = false, lensTimer = 0;
+  map.addEventListener('click', () => {
+    open = !open;
+    map.classList.toggle('open', open);
+    map.setAttribute('aria-expanded', open);
+    map.setAttribute('aria-label', open ? '지도 접기' : '지도 펼치기');
+    hint.textContent = open ? "길을 따라 '노을 전망대'까지 가 보세요" : '지도를 눌러 펼쳐 보세요';
+    clearTimeout(lensTimer); lensReady = false; lens.classList.remove('on');
+    if (open) lensTimer = setTimeout(() => { lensReady = true; lens.classList.add('on'); }, reduce ? 0 : 1750);
+  });
+
+  // ---------- 돋보기 ----------
+  let px = -1, py = -1, lastMove = -1e4, lx = WP[0][0], ly = WP[0][1], s = 0, dir = 1, pause = 0;
+  stage.addEventListener('pointermove', e => {
+    const r = stage.getBoundingClientRect();
+    px = (e.clientX - r.left) / r.width * MW; py = (e.clientY - r.top) / r.height * MH;
+    if (px >= 0 && px <= MW && py >= 0 && py <= MH) lastMove = performance.now();
+  });
+  stage.addEventListener('pointerleave', () => { lastMove = -1e4; });
+
+  let prev = performance.now();
+  function frame(ms) {
+    const dt = Math.min(.05, (ms - prev) / 1000); prev = ms;
+    if (lensReady) {
+      let tx, ty;
+      if (ms - lastMove < 1800) { tx = px; ty = py; }
+      else {
+        if (reduce) s = TOTAL;
+        else if (pause > 0) pause -= dt;
+        else {
+          s += dir * 55 * dt;
+          if (s >= TOTAL) { s = TOTAL; dir = -1; pause = 1.6; }
+          if (s <= 0) { s = 0; dir = 1; pause = .8; }
+        }
+        [tx, ty] = along(s);
+      }
+      const k = reduce ? 1 : Math.min(1, dt * 7);
+      lx += (tx - lx) * k; ly += (ty - ly) * k;
+      lens.style.transform = `translate(${lx - D / 2}px,${ly - D / 2}px)`;
+      lc.fillStyle = '#2a1d16'; lc.fillRect(0, 0, 340, 340);
+      lc.drawImage(off, lx * K - D / 2, ly * K - D / 2, D, D, 0, 0, 340, 340);
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

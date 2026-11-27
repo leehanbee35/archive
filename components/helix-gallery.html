@@ -1,0 +1,178 @@
+<!doctype html>
+<!-- meta: {"name":"나선 Gallery","cat":"갤러리","desc":"이중 나선을 따라 비스듬히 늘어선 카드가 천천히 돌고, 휠로 축을 따라 이동하며 누른 카드를 앞으로 데려오는 3D 갤러리","added":"2026-11-27"} -->
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<title>나선 갤러리</title>
+<style>
+  :root{--bg:#000;--ink:#f1efe9;--mute:#7b7a76}
+  *{box-sizing:border-box;margin:0}
+  html,body{height:100%}
+  body{background:radial-gradient(60% 55% at 50% 50%,#121214,var(--bg));color:var(--ink);overflow:hidden;
+    font-family:"Pretendard Variable",Pretendard,-apple-system,"Malgun Gothic",sans-serif;-webkit-user-select:none;user-select:none}
+  .scene{position:absolute;inset:0;perspective:1000px;cursor:grab;outline:none;touch-action:none}
+  .scene.drag{cursor:grabbing}
+  .world{position:absolute;left:50%;top:50%;transform-style:preserve-3d}
+  .card{position:absolute;left:0;top:0;width:var(--cw);height:var(--ch);margin:calc(var(--ch) / -2) 0 0 calc(var(--cw) / -2);
+    border-radius:8px;overflow:hidden;background:#222;cursor:pointer;will-change:transform;
+    box-shadow:0 10px 30px rgba(0,0,0,.6)}
+  .card svg{display:block;width:100%;height:100%;pointer-events:none}
+  .card::after{content:"";position:absolute;inset:0;background:#000;opacity:var(--dk,0);pointer-events:none}
+  .card.sel{outline:1.5px solid rgba(255,255,255,.85);outline-offset:3px}
+  .hud{position:absolute;left:18px;bottom:16px;right:18px;display:flex;justify-content:space-between;align-items:flex-end;gap:12px;pointer-events:none}
+  .name{font-size:15px;font-weight:600;letter-spacing:-.01em}
+  .name small{display:block;font-size:11px;font-weight:500;color:var(--mute);margin-bottom:3px;font-feature-settings:"tnum"}
+  .hint{font-size:11px;color:var(--mute);text-align:right}
+  .btns{position:absolute;right:16px;top:16px;display:flex;gap:6px}
+  .btns button{width:30px;height:30px;border-radius:50%;border:1px solid #333;background:rgba(20,20,22,.8);color:var(--ink);
+    font:inherit;font-size:13px;cursor:pointer;display:grid;place-items:center}
+  .btns button:hover{background:#26262a}
+  .btns button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+  @media (max-height:300px){.hint{display:none}.btns{top:8px;right:8px}}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+  <div class="scene" id="scene" tabindex="0" aria-label="나선 갤러리, 화살표로 돌리고 이동하기"><div class="world" id="world"></div></div>
+  <div class="btns">
+    <button id="up" aria-label="위로">↑</button><button id="left" aria-label="왼쪽으로 돌리기">‹</button>
+    <button id="right" aria-label="오른쪽으로 돌리기">›</button><button id="down" aria-label="아래로">↓</button>
+  </div>
+  <div class="hud"><p class="name" id="name"></p><p class="hint">드래그 · 휠 · 카드를 눌러 보세요</p></div>
+<script>
+  const PAL = [
+    ['#f3b58a','#6d4a6e','#ffe6c2','#2e2440'], ['#9fd0d8','#355c7d','#f7f1dd','#1d2b3a'],
+    ['#e9a2a8','#8c5e8f','#fbe3d6','#3b2a3f'], ['#c8d99a','#5f7d4e','#f4f1cf','#23301f'],
+    ['#f6d07a','#c2603f','#fff2cf','#3c1f1a'], ['#b6b2e8','#5a4f9c','#efe9ff','#211c3d'],
+    ['#8fc1a9','#2f6b62','#e4f3e2','#132a28'], ['#e8c3a0','#9b6a4f','#f8ecdf','#2f221b']
+  ];
+  const NAMES = ['새벽 능선','분홍 정원','바다 안개','여름 들판','붉은 오후','보랏빛 꿈','숲의 숨','모래 언덕',
+                 '빛의 방','고요한 호수','바람 소리','저녁 구름'];
+  const K = 12, STEP = .52;
+  const world = document.getElementById('world'), scene = document.getElementById('scene'), nameEl = document.getElementById('name');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function rng(s){ return () => (s = (s * 16807) % 2147483647) / 2147483647; }
+
+  function art(i){
+    const r = rng(i * 571 + 9), [a, b, c, d] = PAL[i % PAL.length], id = 'h' + i, type = i % 3;
+    let s = `<svg viewBox="0 0 200 140" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs>
+      <linearGradient id="${id}a" x1="0" y1="0" x2="${r() * .5}" y2="1"><stop offset="0" stop-color="${c}"/><stop offset=".55" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient>
+      <filter id="${id}s" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="10"/></filter>
+      <filter id="${id}e"><feGaussianBlur stdDeviation=".6"/></filter></defs>
+      <rect width="200" height="140" fill="url(#${id}a)"/>`;
+    for (let j = 0; j < 3; j++) s += `<circle cx="${r() * 200}" cy="${r() * 140}" r="${25 + r() * 35}" fill="${[c, a, b][j]}" opacity=".45" filter="url(#${id}s)"/>`;
+    if (type === 0) {
+      s += `<circle cx="${50 + r() * 100}" cy="${40 + r() * 20}" r="${12 + r() * 8}" fill="${c}" opacity=".9" filter="url(#${id}e)"/>`;
+      for (let j = 0; j < 3; j++) {
+        const y = 80 + j * 20, h = 20 + r() * 25;
+        s += `<path d="M0 ${y} L${30 + r() * 40} ${y - h} L${90 + r() * 30} ${y - 5} L${140 + r() * 30} ${y - h * .8} L200 ${y} V140 H0Z" fill="${j === 2 ? d : b}" opacity="${.45 + j * .25}" filter="url(#${id}e)"/>`;
+      }
+    } else if (type === 1) {
+      for (let j = 0; j < 5; j++) {
+        const x = 20 + r() * 160, y = 30 + r() * 80, R = 10 + r() * 22;
+        s += `<circle cx="${x}" cy="${y}" r="${R}" fill="${[c, a, b, d][j % 4]}" opacity=".85" filter="url(#${id}e)"/><circle cx="${x - R * .3}" cy="${y - R * .3}" r="${R * .35}" fill="#fff" opacity=".35" filter="url(#${id}s)"/>`;
+      }
+    } else {
+      s += `<rect x="0" y="96" width="200" height="44" fill="${d}" opacity=".55"/>`;
+      const x = 70 + r() * 60;
+      s += `<g fill="${d}" opacity=".9" filter="url(#${id}e)"><circle cx="${x}" cy="62" r="8"/><path d="M${x - 13} 74 Q${x} 66 ${x + 13} 74 L${x + 15} 104 H${x - 15}Z"/></g>`;
+      s += `<ellipse cx="${x}" cy="106" rx="34" ry="4" fill="#000" opacity=".25"/>`;
+    }
+    return s + `</svg>`;
+  }
+
+  const cards = [];
+  for (let i = 0; i < K * 2; i++) {
+    const el = document.createElement('div'), s = i % 2, k = Math.floor(i / 2);
+    el.className = 'card'; el.innerHTML = art(i);
+    const name = NAMES[(k + s * 5) % NAMES.length];
+    el.setAttribute('aria-label', name);
+    el.addEventListener('click', () => { if (!moved) focusCard(i); });
+    world.appendChild(el);
+    cards.push({ el, s, k, name });
+  }
+
+  let Rr = 200, CW = 120, CH = 86, GAP = 50, TILT = 0, H = 600;
+  function size(){
+    const w = innerWidth; H = innerHeight;
+    Rr = Math.max(80, Math.min(w * .28, H * .5));
+    CW = Rr * .64; CH = CW * .7; GAP = Math.max(CH * .62, H * .085);
+    TILT = Math.atan2(GAP, Rr * STEP) * .55;
+    document.body.style.setProperty('--cw', CW + 'px'); document.body.style.setProperty('--ch', CH + 'px');
+  }
+  addEventListener('resize', size);
+
+  const MID = (K - 1) / 2;
+  let rot = 0, rotT = 0, off = 0, offT = 0, sel = -1, lastFront = -1;
+  const clampOff = v => Math.max(-MID * GAP, Math.min(MID * GAP, v));
+  // 축을 따라 움직이면 나사처럼 함께 돈다
+  function travel(dy){ const n = clampOff(offT + dy); rotT -= (n - offT) / GAP * STEP; offT = n; }
+
+  function render(){
+    let best = -1, bs = -9;
+    cards.forEach((c, i) => {
+      const a = c.k * STEP + c.s * Math.PI + rot;
+      const y = (c.k - MID) * GAP - off, x = Rr * Math.sin(a), z = Rr * Math.cos(a);
+      const front = (Math.cos(a) + 1) / 2, edge = Math.min(1, Math.abs(y) / (H * .55));
+      const sc = i === sel ? 1.12 : 1;
+      c.el.style.transform = `translate3d(${x}px,${y}px,${z}px) rotateY(${a}rad) rotateZ(${TILT}rad) scale(${sc})`;
+      c.el.style.setProperty('--dk', Math.min(.92, (1 - front) * .82 + edge * .5).toFixed(3));
+      const score = Math.cos(a) - edge * 1.5;
+      if (score > bs) { bs = score; best = i; }
+    });
+    if (best !== lastFront) {
+      lastFront = best;
+      nameEl.innerHTML = `<small>${String(best + 1).padStart(2, '0')} / ${cards.length}</small>${cards[best].name}`;
+    }
+  }
+  function focusCard(i){
+    const c = cards[i], base = c.k * STEP + c.s * Math.PI;
+    const want = -base, tw = Math.PI * 2;
+    rotT = want + Math.round((rotT - want) / tw) * tw;
+    offT = clampOff((c.k - MID) * GAP);
+    sel = i; cards.forEach((o, j) => o.el.classList.toggle('sel', j === i));
+    poke(); if (reduce) { rot = rotT; off = offT; }
+  }
+
+  let idleAt = 0, prevT = performance.now(), dragging = false;
+  const poke = () => { idleAt = performance.now(); };
+  function tick(now){
+    const dt = Math.min(1 / 30, (now - prevT) / 1000); prevT = now;
+    if (!reduce && !dragging && now - idleAt > 3500) rotT += dt * .16;
+    const e = reduce ? 1 : 1 - Math.pow(.002, dt);
+    rot += (rotT - rot) * e; off += (offT - off) * e;
+    render();
+    requestAnimationFrame(tick);
+  }
+
+  let sx = 0, sy = 0, lx = 0, ly = 0, moved = false;
+  scene.addEventListener('pointerdown', e => {
+    dragging = true; moved = false; sx = lx = e.clientX; sy = ly = e.clientY;
+    scene.classList.add("drag"); poke();
+  });
+  scene.addEventListener('pointermove', e => {
+    if (!dragging) return;
+    if (!moved && Math.hypot(e.clientX - sx, e.clientY - sy) > 5) { moved = true; scene.setPointerCapture(e.pointerId); }
+    rotT += (e.clientX - lx) / Rr; travel(-(e.clientY - ly) * 1.2);
+    lx = e.clientX; ly = e.clientY; poke();
+  });
+  const end = e => {
+    if (!dragging) return;
+    dragging = false; scene.classList.remove('drag'); poke();
+    setTimeout(() => moved = false, 0);
+  };
+  scene.addEventListener('pointerup', end); scene.addEventListener('pointercancel', end);
+  scene.addEventListener('wheel', e => { e.preventDefault(); travel(e.deltaY * .5); rotT += e.deltaX / Rr; poke(); }, { passive:false });
+
+  const keys = { ArrowLeft:() => rotT -= STEP, ArrowRight:() => rotT += STEP, ArrowUp:() => travel(-GAP), ArrowDown:() => travel(GAP) };
+  addEventListener('keydown', e => { if (keys[e.key]) { keys[e.key](); poke(); e.preventDefault(); } });
+  ['left', 'right', 'up', 'down'].forEach(n => document.getElementById(n).onclick = () => {
+    keys['Arrow' + n[0].toUpperCase() + n.slice(1)](); poke();
+  });
+
+  size(); render(); requestAnimationFrame(tick);
+</script>
+</body>
+</html>
